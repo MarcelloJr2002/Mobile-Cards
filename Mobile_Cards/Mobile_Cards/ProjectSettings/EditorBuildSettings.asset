@@ -8,4 +8,13 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MainMenu.unity
     guid: 2cda990e2423bbf4892e6590ba056729
+  - enabled: 1
+    path: Assets/Scenes/GameChoice.unity
+    guid: ea8950b03437d4c45919f7c6c7c3662c
+  - enabled: 1
+    path: Assets/Scenes/ConnectionChoice.unity
+    guid: e9100f9e03c9eee418b7e17adb91154d
+  - enabled: 1
+    path: Assets/Scenes/BlackJack.unity
+    guid: de1a2f1697742fd479570a52609c96eb
   m_configObjects: {}

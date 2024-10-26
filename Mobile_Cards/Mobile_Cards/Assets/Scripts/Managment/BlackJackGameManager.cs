@@ -7,6 +7,8 @@ using UnityEngine;
 public class BlackJackGameManager : BaseGameManager
 {
     public CardDealer cardDealer;
+    public List<Player> playerList;
+    public Player player;
     
     public void Hit()
     {

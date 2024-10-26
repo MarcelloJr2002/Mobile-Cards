@@ -4,27 +4,38 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class BaseGameManager : MonoBehaviourPunCallbacks
 {
     public CardDealer dealer;
     
     public virtual void GameStart()
     {
-        dealer.numberOfPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+        dealer.SetNumberOfPlayers(PhotonNetwork.CurrentRoom.PlayerCount);
     }
 
     public virtual void EndGame()
     {
-
+        StartCoroutine(ClearCardsFromScene(2.0f));
     }
 
-    public virtual void OnPlayerEnteredRoom(Player newPlayer)
+    public virtual void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
     {
-        dealer.numberOfPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+        dealer.SetNumberOfPlayers(PhotonNetwork.CurrentRoom.PlayerCount);
     }
 
-    public virtual void OnPlayerLeftRoom(Player otherPlayer)
+    public virtual void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
     {
-        dealer.numberOfPlayers = PhotonNetwork.CurrentRoom.PlayerCount;
+        dealer.SetNumberOfPlayers(PhotonNetwork.CurrentRoom.PlayerCount);
+    }
+
+    private IEnumerator ClearCardsFromScene(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        foreach (GameObject card in GameObject.FindGameObjectsWithTag("CardsModels"))
+        {
+            Destroy(card);
+        }
     }
 }

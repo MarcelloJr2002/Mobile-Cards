@@ -5,6 +5,21 @@ using UnityEngine;
 
 public class GameModeManager : MonoBehaviourPunCallbacks
 {
+    public static GameModeManager Instance { get; private set; }
+
+    void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+    }
+
     public enum GameMode
     {
         Photon,
@@ -22,7 +37,7 @@ public class GameModeManager : MonoBehaviourPunCallbacks
     public GameType selectedGameType;
     public BaseGameManager gameManager;
 
-    void InitializeGameMode()
+    public void InitializeGameMode()
     {
         switch (selectedMode)
         {
@@ -52,13 +67,13 @@ public class GameModeManager : MonoBehaviourPunCallbacks
 
     void InitializeBluetooth()
     {
-
+        //Do zrobienia
     }
 
 
     void OnConnectedToBluetooth()
     {
-
+        //Do zrobienia
     }
 
     void InitializeGameManager()
@@ -66,7 +81,7 @@ public class GameModeManager : MonoBehaviourPunCallbacks
         switch(selectedGameType)
         {
             case GameType.BlackJack:
-                gameManager = gameObject.AddComponent<BlackJackGameManager>();
+                gameManager = gameObject.AddComponent<BlackJackGame>();
                 break;
             case GameType.Poker:
                 gameManager = gameObject.AddComponent<PokerGameManager>();

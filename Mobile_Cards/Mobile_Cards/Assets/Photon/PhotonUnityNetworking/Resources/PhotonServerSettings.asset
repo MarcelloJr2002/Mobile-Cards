@@ -39,6 +39,14 @@ MonoBehaviour:
   - DestroySpaceship
   - Fire
   - RespawnSpaceship
+  - UpdateTurn
+  - DisplayBet
+  - PlayerHit
+  - DealCardsToPlayers
+  - UpdateBetTurn
+  - ShowResultSign
+  - ShowAndHideResultSign
+  - UpdateMoneyText
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 0
