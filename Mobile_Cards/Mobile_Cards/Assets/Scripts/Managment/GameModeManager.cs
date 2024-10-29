@@ -2,6 +2,7 @@ using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameModeManager : MonoBehaviourPunCallbacks
 {
@@ -61,9 +62,24 @@ public class GameModeManager : MonoBehaviourPunCallbacks
 
     public override void OnConnectedToMaster()
     {
-        Debug.Log("Connected to Photon.");
+        PhotonNetwork.JoinLobby();
         InitializeGameManager();
     }
+
+    public override void OnJoinedLobby()
+    {
+        SceneManager.LoadScene("CreateAndJoinRoom");
+    }
+
+    public override void OnJoinedRoom()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            //gameManager.InitializePlayer(PhotonNetwork.LocalPlayer);
+
+        }
+    }
+
 
     void InitializeBluetooth()
     {

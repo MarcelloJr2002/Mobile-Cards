@@ -12,7 +12,7 @@ public class ConnectionChoice : MonoBehaviour
         {
             gameModeManager.selectedMode = GameModeManager.GameMode.Photon;
             gameModeManager.InitializeGameMode();
-            SceneManager.LoadScene("BlackJack");
+            //SceneManager.LoadScene("BlackJack");
         }
     }
 }

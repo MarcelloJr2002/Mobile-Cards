@@ -4,18 +4,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using Photon.Realtime;
 using UnityEngine.UI;
+using System.Linq;
 
 public class BlackJackGame : BaseGameManager
 {
     public Transform[] playerPositions;
     public Transform dealerPosition;
-    public GameObject playerPrefab;
-    public Player[] players;
+    //public GameObject playerPrefab;
+    //public Player[] players;
     public Player dealerBot;
+    public Button[] positionButtons;
 
-    private int currentPlayers = 0;
+    //private int currentPlayers = 0;
     //private bool gameStarted = false;
-    private int maxPlayers = 3;
     public CardDealer cardDealer;
     public int currentPlayerIndex = 0;
     public GameObject bustedSign;
@@ -34,48 +35,107 @@ public class BlackJackGame : BaseGameManager
     public Text[] betText;
     public int signIndex = 0;
     public Text[] MoneyText;
+    public string playerId = "";
+    private Dictionary<string, Player> playersList = new Dictionary<string, Player>();
+    private int index = 0;
+    private new PhotonView photonView;
 
     private void Start()
     {
-        currentPlayers = PhotonNetwork.PlayerList.Length;
-        players = new Player[maxPlayers];
+        dealerBot = new Player();
+        //dealerBot.SetPosition(dealerPosition.position);
+        photonView = GetComponent<PhotonView>();
+    }
+    
 
-        dealerBot = gameObject.AddComponent<Player>();
-        dealerBot.position.position = dealerPosition.position;
-
-        TwentyBet.onClick.AddListener(() => SetBet(betValues[0]));
-        FiftyBet.onClick.AddListener(() => SetBet(betValues[1]));
-        HundredBet.onClick.AddListener(() => SetBet(betValues[2]));
-        TwoHundredBet.onClick.AddListener(() => SetBet(betValues[3]));
-
-        for(int i=0; i<betText.Length; i++)
+    /*public void AssignPositions(Player player)
+    {
+        Debug.Log("AssingPosition");
+        Debug.Log(playerPositions[0].position);
+        switch(players.Count)
         {
-            betText[i].text = "";
-            MoneyText[i].text = "";
+            case 1:
+                player.position = playerPositions[0].position;
+                break;
+            case 2:
+                player.position = playerPositions[1].position;
+                break;
+            case 3:
+                player.position = playerPositions[2].position;
+                break;
         }
+        Debug.Log(player.position);
+    }*/
 
-        if (currentPlayers <= maxPlayers && currentPlayers > 1)
+    public void PositionButtonClicked(GameObject button)
+    {
+
+        Player newPlayer = new(PhotonNetwork.LocalPlayer);
+        PhotonNetwork.LocalPlayer.NickName = "PhotonPlayer" + index;
+        playersList.Add(PhotonNetwork.LocalPlayer.NickName, newPlayer);
+        playersList[PhotonNetwork.LocalPlayer.NickName] = newPlayer;
+        index++;
+        Debug.Log(playersList.Count);
+        Debug.Log("Available Players: " + playersList.Count);
+        Debug.Log("Local Player Name: " + PhotonNetwork.LocalPlayer.NickName);
+        Debug.Log(button.transform.position);
+        newPlayer.position = button.transform.position;
+        Debug.Log(newPlayer.position);
+
+        Debug.Log(button.name);
+        photonView.RPC("HideButton", RpcTarget.All, button);
+
+        foreach (var positionBtn in positionButtons)
         {
-            if (PhotonNetwork.IsMasterClient)
-            {
-                // Przypisanie pozycji dla Master Clienta (gracz 0)
-                AssignPositions(PhotonNetwork.LocalPlayer, 0);
-            }
-
-            // Sprawdź, czy są inni gracze w pokoju
-            for (int i = 0; i < PhotonNetwork.PlayerList.Length; i++)
-            {
-                if (!PhotonNetwork.PlayerList[i].IsMasterClient)
-                {
-                    // Przypisz pozycję dla innych graczy
-                    AssignPositions(PhotonNetwork.PlayerList[i], i);
-                }
-            }
-
-            GameStart();
+            positionBtn.gameObject.SetActive(false);
         }
 
     }
+
+    [PunRPC]
+    public void HideButton(GameObject buttonName)
+    {
+        Debug.Log(buttonName);
+        //Debug.Log(GameObject.Find(buttonName));
+        //GameObject newbutton = GameObject.Find(buttonName);
+
+        /*if (newbutton != null)
+        {
+            newbutton.SetActive(false);
+        }*/
+    }
+
+    /*
+    
+    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
+    {
+        base.OnPlayerEnteredRoom(newPlayer);
+
+        
+
+        // Pobierz gracza ze słownika i przypisz pozycję
+        //Player playerToAssign = players[newPlayer.NickName];
+        //AssignPositions(playerToAssign);
+    }
+    /*
+    public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
+    {
+        base.OnPlayerLeftRoom(otherPlayer);
+
+        //currentPlayers = PhotonNetwork.PlayerList.Length;
+
+        /*foreach (GameObject playerObj in GameObject.FindGameObjectsWithTag("Player"))
+        {
+            Player playerScript = playerObj.GetComponent<Player>();
+
+            if (playerScript.photonPlayer != null && playerScript.photonPlayer.ActorNumber == otherPlayer.ActorNumber)
+            {
+                Destroy(playerObj);
+                break;
+            }
+        }
+
+    }*/
 
 
     [PunRPC]
@@ -89,77 +149,39 @@ public class BlackJackGame : BaseGameManager
     {
         betText[index].text = betValue.ToString() + "$";
     }
-
+    /*
     public void SetBet(double betValue)
     {
-        players[currentPlayerIndex].bet += betValue;
-        players[currentPlayerIndex].DeductMoney(betValue);
-        double playerMoney = players[currentPlayerIndex].money;
-        photonView.RPC("DisplayBet", RpcTarget.All, betValue, currentPlayerIndex);
-        photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, currentPlayerIndex);
-    }
-
-    private void AssignPositions(Photon.Realtime.Player player, int index)
-    {
-        Vector3 spawnPosition = playerPositions[index].position;
-
-        if(player.IsLocal)
+        if (currentPlayerIndex >= 0 && currentPlayerIndex < players.Count)
         {
-            PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
-            players[index] = gameObject.AddComponent<Player>();
-            players[index].position.position = spawnPosition;
-            photonView.RPC("UpdateMoneyText", RpcTarget.All, players[index].money, index);
+            playerId = players.Keys.ElementAt(currentPlayerIndex);
+
+            Player currentPlayer = players[playerId];
+
+            currentPlayer.bet += betValue;
+            currentPlayer.DeductMoney(betValue);
+
+            double playerMoney = currentPlayer.money;
+
+            photonView.RPC("DisplayBet", RpcTarget.All, betValue, currentPlayerIndex);
+            photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, currentPlayerIndex);
         }
     }
-
-    public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
-    {
-        base.OnPlayerEnteredRoom(newPlayer);
-
-        // Sprawdzamy, ilu graczy jest obecnie w pokoju
-        currentPlayers = PhotonNetwork.PlayerList.Length;
-
-        // Przydzielamy pozycję dla nowego gracza
-        AssignPositions(newPlayer, currentPlayers - 1);
-    }
-
-    public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
-    {
-        base.OnPlayerLeftRoom(otherPlayer);
-
-        currentPlayers = PhotonNetwork.PlayerList.Length;
-
-        foreach (GameObject playerObj in GameObject.FindGameObjectsWithTag("Player"))
-        {
-            Player playerScript = playerObj.GetComponent<Player>();
-
-            if (playerScript.photonPlayer != null && playerScript.photonPlayer.ActorNumber == otherPlayer.ActorNumber)
-            {
-                Destroy(playerObj);
-                break;
-            }
-        }
-
-    }
-
 
     public void BetTurn()
     {
         if (PhotonNetwork.IsMasterClient)
         {
-            if (currentPlayerIndex == photonView.Owner.ActorNumber - 1)
-            {
-                ChipButtons.SetActive(true);
-                ConfirmButton.SetActive(true);
-            }
+            Debug.Log("Bet turn");
 
-            else
-            {
-                ChipButtons.SetActive(false);
-                ConfirmButton.SetActive(false);
-            }
+            playerId = players.Keys.ElementAt(currentPlayerIndex);
+
+            ChipButtons.SetActive(playerId == photonView.Owner.UserId);
+            ConfirmButton.SetActive(playerId == photonView.Owner.UserId);
         }
     }
+
+    
 
     public void ConfirmButtonClicked()
     {
@@ -169,7 +191,7 @@ public class BlackJackGame : BaseGameManager
             ConfirmButton.SetActive(false);
             currentPlayerIndex += 1;
 
-            if(currentPlayerIndex >= players.Length)
+            if (currentPlayerIndex >= players.Count)
             {
                 EndBetingTurn();
             }
@@ -192,23 +214,25 @@ public class BlackJackGame : BaseGameManager
         BetTurn();
     }
 
+
+    
     public override void GameStart()
     {
         base.GameStart();
         currentPlayerIndex = 0;
-        BetTurn();
     }
 
 
-
+    /*
     [PunRPC]
     public void DealCardsToPlayers()
     {
         for (int i = 0; i < 2; i++)
         {
-            for (int j = 0; j < players.Length; j++)
+            for (int j = 0; j < players.Count; j++)
             {
-                StartCoroutine(cardDealer.DealCards(players[j]));
+                playerId = players.Keys.ElementAt(j);
+                StartCoroutine(cardDealer.DealCards(players[playerId]));
             }
         }
     }
@@ -221,8 +245,9 @@ public class BlackJackGame : BaseGameManager
         }
     }
 
+    
     [PunRPC]
-    public void PlayerHit(int playerIndex)
+    public void PlayerHit(string playerIndex)
     {
         StartCoroutine(cardDealer.DealCards(players[playerIndex]));
         if (players[playerIndex].Busted())
@@ -241,7 +266,8 @@ public class BlackJackGame : BaseGameManager
 
     public void Hit()
     {
-        photonView.RPC("PlayerHit", RpcTarget.All, currentPlayerIndex);
+        playerId = players.Keys.ElementAt(currentPlayerIndex);
+        photonView.RPC("PlayerHit", RpcTarget.All, playerId);
     }
 
     [PunRPC]
@@ -251,11 +277,11 @@ public class BlackJackGame : BaseGameManager
         HitStandTurn();
     }
 
-
+    
     public void Stand()
     {
         currentPlayerIndex += 1;
-        if(currentPlayerIndex < players.Length)
+        if(currentPlayerIndex < players.Count)
         {
             photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, currentPlayerIndex);
         }
@@ -267,12 +293,12 @@ public class BlackJackGame : BaseGameManager
             Result();
         }
     }
-
+ 
     public void DealerTurn()
     {
         while (dealerBot.score < 17)
         {
-            StartCoroutine(dealer.DealCards(dealerBot));
+            StartCoroutine(cardDealer.DealCards(dealerBot));
         }
         if (dealerBot.Busted())
         {
@@ -281,128 +307,95 @@ public class BlackJackGame : BaseGameManager
         }
     }
 
-    private IEnumerator ShowAndHideBustedSign(Transform position)
+    private IEnumerator ShowAndHideSign(GameObject sign, Transform position)
     {
-        bustedSign.transform.position = position.position;
-        bustedSign.SetActive(true);
-
+        sign.transform.position = position.position;
+        sign.SetActive(true);
         yield return new WaitForSeconds(2.0f);
-
-        bustedSign.SetActive(false);
+        sign.SetActive(false);
     }
-
-    private IEnumerator ShowAndHideWinnerSign(Transform position)
-    {
-        winnerSign.transform.position = position.position;
-        winnerSign.SetActive(true);
-
-        yield return new WaitForSeconds(2.0f);
-
-        winnerSign.SetActive(false);
-    }
-
-    private IEnumerator ShowAndHideLoseSign(Transform position)
-    {
-        loseSign.transform.position = position.position;
-        loseSign.SetActive(true);
-
-        yield return new WaitForSeconds(2.0f);
-
-        loseSign.SetActive(false);
-    }
-
-    private IEnumerator ShowAndHideDrawSign(Transform position)
-    {
-        drawSign.transform.position = position.position;
-        drawSign.SetActive(true);
-
-        yield return new WaitForSeconds(2.0f);
-
-        drawSign.SetActive(false);
-    }
-
 
     [PunRPC]
     public void ShowAndHideResultSign(int signIndex, Transform position)
     {
-        switch (signIndex) 
+        GameObject signToShow = signIndex switch
         {
-            case 0:
-                StartCoroutine(ShowAndHideBustedSign(position));
-                break;
-            case 1:
-                StartCoroutine(ShowAndHideWinnerSign(position));
-                break;
-            case 2:
-                StartCoroutine(ShowAndHideLoseSign(position));
-                break;
-            case 3:
-                StartCoroutine(ShowAndHideDrawSign(position));
-                break;
+            0 => bustedSign,
+            1 => winnerSign,
+            2 => loseSign,
+            3 => drawSign,
+            _ => null
+        };
+
+        if (signToShow != null)
+        {
+            StartCoroutine(ShowAndHideSign(signToShow, position));
         }
     }
 
+    
 
     public void Result()
     {
         double betMoney = 0;
-        
-        for (int i=0; i<players.Length; i++)
+
+        for (int i=0; i<players.Count; i++)
         {
-            if (players[i].Busted())
+            playerId = players.Keys.ElementAt(i);
+            if (players[playerId].Busted())
             {
                 i++;
             }
 
-            if (players[i].score > dealerBot.score)
+            if (players[playerId].score > dealerBot.score)
             {
-                betMoney += players[i].bet * 2;
-                players[i].AddMoney(betMoney);
+                betMoney += players[playerId].bet * 2;
+                players[playerId].AddMoney(betMoney);
                 signIndex = 1;
-                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
-                photonView.RPC("UpdateMoneyText", RpcTarget.All, players[i].money, i);
+                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
             }
 
-            if (players[i].score < dealerBot.score)
+            if (players[playerId].score < dealerBot.score)
             {
                 signIndex = 2;
-                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
+                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
             }
 
-            if (players[i].score == dealerBot.score)
+            if (players[playerId].score == dealerBot.score)
             {
 
-                if (players[i].IfBlackJack() && !dealerBot.IfBlackJack())
+                if (players[playerId].IfBlackJack() && !dealerBot.IfBlackJack())
                 {
-                    betMoney = players[i].bet + players[i].bet * 1.5;
-                    players[i].AddMoney(betMoney);
+                    betMoney = players[playerId].bet + players[playerId].bet * 1.5;
+                    players[playerId].AddMoney(betMoney);
                     signIndex = 1;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[i].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
                 }
 
-                if (dealerBot.IfBlackJack() && !players[i].IfBlackJack())
+                if (dealerBot.IfBlackJack() && !players[playerId].IfBlackJack())
                 {
                     signIndex = 2;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
                 }
 
-                if (players[i].IfBlackJack() && dealerBot.IfBlackJack())
+                if (players[playerId].IfBlackJack() && dealerBot.IfBlackJack())
                 {
-                    betMoney += players[i].bet;
-                    players[i].AddMoney(betMoney);
+                    betMoney += players[playerId].bet;
+                    players[playerId].AddMoney(betMoney);
                     signIndex = 3;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[i].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
                 }
 
                 else
                 {
-                    betMoney += players[i].bet;
-                    players[i].AddMoney(betMoney);
+                    betMoney += players[playerId].bet;
+                    players[playerId].AddMoney(betMoney);
                     signIndex = 3;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[i].position.position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[i].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
                 }
             }
 
@@ -411,14 +404,16 @@ public class BlackJackGame : BaseGameManager
         EndGame();
     }
 
+    
     public override void EndGame()
     {
         base.EndGame();
-        for(int i=0; i<players.Length; i++)
+        for (int i=0; i<players.Count; i++)
         {
-            players[i].ResetHand();
-            players[i].score = 0;
-            players[i].bet = 0;
+            playerId = players.Keys.ElementAt(i);
+            players[playerId].ResetHand();
+            players[playerId].score = 0;
+            players[playerId].bet = 0;
         }
         dealerBot.ResetHand();
         dealerBot.score = 0;
@@ -428,7 +423,7 @@ public class BlackJackGame : BaseGameManager
         }
 
         GameStart();
-    }
+    }*/
 
 
 }

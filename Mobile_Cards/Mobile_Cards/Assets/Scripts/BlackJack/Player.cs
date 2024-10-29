@@ -4,37 +4,53 @@ using UnityEngine;
 using Photon.Pun;
 using JetBrains.Annotations;
 
-public class Player : MonoBehaviourPunCallbacks, IPunObservable
+public class Player
 {
     public int score;
     public List<Card> playerCards;
     public double money;
     public int id;
     public double bet;
+    public string UserName;
 
-    public Transform position;
-    public string playerName;
-    public PhotonView photonView;
-    public Photon.Realtime.Player photonPlayer;
+    //public Transform position;
+    public Vector2 position;
+    public Photon.Realtime.Player PhotonPlayer;
     public bool aceInHand;
 
-    private void Start()
+    public Player(Photon.Realtime.Player photonPlayer)
     {
-        if(photonView.IsMine)
-        {
-            photonPlayer = PhotonNetwork.LocalPlayer;
-            id = photonPlayer.ActorNumber;
-            playerName = photonPlayer.NickName;
-        }
-        
-        score = 0;
-        money = 1000;
+        PhotonPlayer = photonPlayer;
         playerCards = new List<Card>();
-        position.position = new Vector3(0, 0);
+        score = 0;
         aceInHand = false;
         bet = 0;
+        position = new Vector2(0, 0);
     }
 
+
+    public Player(string userName)
+    {
+        UserName = userName;
+        score = 0; 
+        aceInHand = false; 
+        bet = 0;
+        position = new Vector2(0, 0);
+    }
+
+    public Player()
+    {
+        playerCards = new List<Card>();
+        score = 0;
+        aceInHand = false;
+        position = new Vector2(0, 0);
+    }
+
+    public void SetPosition(Vector2  newPosition)
+    {
+        
+        position = newPosition;
+    }
 
     public void AddCardToHand(Card card)
     {
@@ -132,23 +148,5 @@ public class Player : MonoBehaviourPunCallbacks, IPunObservable
     public double GetMoney()
     {
         return money;
-    }
-
- 
-
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-        {
-            stream.SendNext(playerName);
-            stream.SendNext(id);
-            stream.SendNext(score);
-        }
-        else
-        {
-            playerName = (string)stream.ReceiveNext();
-            id = (int)stream.ReceiveNext();
-            score = (int)stream.ReceiveNext();
-        }
     }
 }
