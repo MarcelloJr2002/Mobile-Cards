@@ -25,6 +25,7 @@ public class Player
         score = 0;
         aceInHand = false;
         bet = 0;
+        money = 1000;
         position = new Vector2(0, 0);
     }
 
@@ -35,6 +36,7 @@ public class Player
         score = 0; 
         aceInHand = false; 
         bet = 0;
+        money = 1000;
         position = new Vector2(0, 0);
     }
 
@@ -42,6 +44,7 @@ public class Player
     {
         playerCards = new List<Card>();
         score = 0;
+        money= 1000;
         aceInHand = false;
         position = new Vector2(0, 0);
     }

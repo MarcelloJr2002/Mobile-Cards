@@ -14,6 +14,7 @@ Library: C:\Maciek\Studia\Inzynierka\Mobile-Cards\Mobile_Cards\Mobile_Cards\Temp
 --assembly-defines=Unity.VisualScripting.Core;
 --assembly-defines=Unity.2D.Animation.Runtime;
 --assembly-defines=Unity.2D.Tilemap.Extras;
+--assembly-defines=AndroidRuntimePermissions.Runtime;
 --assembly-defines=Unity.VisualScripting.Flow;
 --assembly-defines=Unity.InternalAPIEngineBridge.001;
 --assembly-defines=PhotonRealtime;

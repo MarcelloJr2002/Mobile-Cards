@@ -38,7 +38,7 @@ public class BlackJackGame : BaseGameManager
     public string playerId = "";
     private Dictionary<string, Player> playersList = new Dictionary<string, Player>();
     private int index = 0;
-    private new PhotonView photonView;
+    private PhotonView photonView;
 
     private void Start()
     {
@@ -46,7 +46,16 @@ public class BlackJackGame : BaseGameManager
         //dealerBot.SetPosition(dealerPosition.position);
         photonView = GetComponent<PhotonView>();
     }
-    
+
+    public bool PhotonOrBluetooth()
+    {
+        if (GameModeManager.Instance.selectedMode == GameModeManager.GameMode.Photon)
+        {
+            return true;
+        }
+        else return false;
+    }
+
 
     /*public void AssignPositions(Player player)
     {
@@ -67,55 +76,63 @@ public class BlackJackGame : BaseGameManager
         Debug.Log(player.position);
     }*/
 
+    [PunRPC]
+    public void AddPlayer(string playerName, Vector3 position)
+    {
+        Player newPlayer = new(PhotonNetwork.LocalPlayer);
+        playersList.Add(playerName, newPlayer);
+        playersList[playerName].position = position;
+
+        // Dodatkowe debugowanie
+        Debug.Log($"Added player: {playerName} at position: {position}");
+        Debug.Log(playersList.Count);
+    }
+
     public void PositionButtonClicked(GameObject button)
     {
+        PhotonNetwork.LocalPlayer.NickName = "PhotonPlayer" + PhotonNetwork.LocalPlayer.ActorNumber;
 
-        Player newPlayer = new(PhotonNetwork.LocalPlayer);
-        PhotonNetwork.LocalPlayer.NickName = "PhotonPlayer" + index;
-        playersList.Add(PhotonNetwork.LocalPlayer.NickName, newPlayer);
-        playersList[PhotonNetwork.LocalPlayer.NickName] = newPlayer;
-        index++;
-        Debug.Log(playersList.Count);
-        Debug.Log("Available Players: " + playersList.Count);
-        Debug.Log("Local Player Name: " + PhotonNetwork.LocalPlayer.NickName);
-        Debug.Log(button.transform.position);
-        newPlayer.position = button.transform.position;
-        Debug.Log(newPlayer.position);
+        photonView.RPC("AddPlayer", RpcTarget.All, PhotonNetwork.LocalPlayer.NickName, button.transform.position);
 
-        Debug.Log(button.name);
-        photonView.RPC("HideButton", RpcTarget.All, button);
-
-        foreach (var positionBtn in positionButtons)
+        if (PhotonOrBluetooth())
         {
-            positionBtn.gameObject.SetActive(false);
+            photonView.RPC("HideButton", RpcTarget.Others, button.name);
+        }
+
+        if(PhotonNetwork.LocalPlayer.IsLocal)
+        {
+            foreach (var positionBtn in positionButtons)
+            {
+                positionBtn.gameObject.SetActive(false);
+            }
+        }
+
+        if (playersList.Count >= 2)
+        {
+            GameStart();
         }
 
     }
 
     [PunRPC]
-    public void HideButton(GameObject buttonName)
+    public void HideButton(string buttonName)
     {
         Debug.Log(buttonName);
-        //Debug.Log(GameObject.Find(buttonName));
-        //GameObject newbutton = GameObject.Find(buttonName);
+        GameObject newbutton = GameObject.Find(buttonName);
 
-        /*if (newbutton != null)
+        if (newbutton != null && newbutton.activeSelf)
         {
             newbutton.SetActive(false);
-        }*/
+        }
     }
 
-    /*
+
+
     
     public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
     {
         base.OnPlayerEnteredRoom(newPlayer);
-
-        
-
-        // Pobierz gracza ze słownika i przypisz pozycję
-        //Player playerToAssign = players[newPlayer.NickName];
-        //AssignPositions(playerToAssign);
+        Debug.Log(playersList.Count);
     }
     /*
     public override void OnPlayerLeftRoom(Photon.Realtime.Player otherPlayer)
@@ -149,32 +166,30 @@ public class BlackJackGame : BaseGameManager
     {
         betText[index].text = betValue.ToString() + "$";
     }
-    /*
+    
     public void SetBet(double betValue)
     {
-        if (currentPlayerIndex >= 0 && currentPlayerIndex < players.Count)
+        if (currentPlayerIndex >= 0 && currentPlayerIndex < playersList.Count)
         {
-            playerId = players.Keys.ElementAt(currentPlayerIndex);
+            playerId = playersList.Keys.ElementAt(currentPlayerIndex);
+            playersList[playerId].bet += betValue;
+            playersList[playerId].DeductMoney(betValue);
 
-            Player currentPlayer = players[playerId];
 
-            currentPlayer.bet += betValue;
-            currentPlayer.DeductMoney(betValue);
+            double playerMoney = playersList[playerId].money;
 
-            double playerMoney = currentPlayer.money;
-
-            photonView.RPC("DisplayBet", RpcTarget.All, betValue, currentPlayerIndex);
-            photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, currentPlayerIndex);
+            photonView.RPC("DisplayBet", RpcTarget.AllViaServer, betValue, currentPlayerIndex);
+            photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playerMoney, currentPlayerIndex);
         }
     }
-
+    
     public void BetTurn()
     {
         if (PhotonNetwork.IsMasterClient)
         {
             Debug.Log("Bet turn");
 
-            playerId = players.Keys.ElementAt(currentPlayerIndex);
+            playerId = playersList.Keys.ElementAt(currentPlayerIndex);
 
             ChipButtons.SetActive(playerId == photonView.Owner.UserId);
             ConfirmButton.SetActive(playerId == photonView.Owner.UserId);
@@ -182,7 +197,7 @@ public class BlackJackGame : BaseGameManager
     }
 
     
-
+    
     public void ConfirmButtonClicked()
     {
         if(PhotonNetwork.IsMasterClient)
@@ -191,15 +206,15 @@ public class BlackJackGame : BaseGameManager
             ConfirmButton.SetActive(false);
             currentPlayerIndex += 1;
 
-            if (currentPlayerIndex >= players.Count)
+            if (currentPlayerIndex >= playersList.Count)
             {
                 EndBetingTurn();
             }
 
-            photonView.RPC("UpdateBetTurn", RpcTarget.All, currentPlayerIndex);
+            photonView.RPC("UpdateBetTurn", RpcTarget.AllViaServer, currentPlayerIndex);
         }
     }
-
+    
     public void EndBetingTurn()
     {
         currentPlayerIndex = 0;
@@ -220,19 +235,20 @@ public class BlackJackGame : BaseGameManager
     {
         base.GameStart();
         currentPlayerIndex = 0;
+        BetTurn();
     }
 
 
-    /*
+    
     [PunRPC]
     public void DealCardsToPlayers()
     {
         for (int i = 0; i < 2; i++)
         {
-            for (int j = 0; j < players.Count; j++)
+            for (int j = 0; j < playersList.Count; j++)
             {
-                playerId = players.Keys.ElementAt(j);
-                StartCoroutine(cardDealer.DealCards(players[playerId]));
+                playerId = playersList.Keys.ElementAt(j);
+                StartCoroutine(cardDealer.DealCards(playersList[playerId]));
             }
         }
     }
@@ -241,7 +257,7 @@ public class BlackJackGame : BaseGameManager
     {
         if(PhotonNetwork.IsMasterClient)
         {
-            photonView.RPC("DealCardsToPlayers", RpcTarget.All);
+            photonView.RPC("DealCardsToPlayers", RpcTarget.AllViaServer);
         }
     }
 
@@ -249,11 +265,11 @@ public class BlackJackGame : BaseGameManager
     [PunRPC]
     public void PlayerHit(string playerIndex)
     {
-        StartCoroutine(cardDealer.DealCards(players[playerIndex]));
-        if (players[playerIndex].Busted())
+        StartCoroutine(cardDealer.DealCards(playersList[playerIndex]));
+        if (playersList[playerIndex].Busted())
         {
             signIndex = 0;
-            photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex);
+            photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex);
             Stand();
         }
     }
@@ -266,8 +282,8 @@ public class BlackJackGame : BaseGameManager
 
     public void Hit()
     {
-        playerId = players.Keys.ElementAt(currentPlayerIndex);
-        photonView.RPC("PlayerHit", RpcTarget.All, playerId);
+        playerId = playersList.Keys.ElementAt(currentPlayerIndex);
+        photonView.RPC("PlayerHit", RpcTarget.AllViaServer, playerId);
     }
 
     [PunRPC]
@@ -281,7 +297,7 @@ public class BlackJackGame : BaseGameManager
     public void Stand()
     {
         currentPlayerIndex += 1;
-        if(currentPlayerIndex < players.Count)
+        if(currentPlayerIndex < playersList.Count)
         {
             photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, currentPlayerIndex);
         }
@@ -303,20 +319,20 @@ public class BlackJackGame : BaseGameManager
         if (dealerBot.Busted())
         {
             signIndex = 0;
-            photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex);
+            photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex);
         }
     }
 
-    private IEnumerator ShowAndHideSign(GameObject sign, Transform position)
+    private IEnumerator ShowAndHideSign(GameObject sign, Vector3 position)
     {
-        sign.transform.position = position.position;
+        sign.transform.position = position;
         sign.SetActive(true);
         yield return new WaitForSeconds(2.0f);
         sign.SetActive(false);
     }
 
     [PunRPC]
-    public void ShowAndHideResultSign(int signIndex, Transform position)
+    public void ShowAndHideResultSign(int signIndex, Vector3 position)
     {
         GameObject signToShow = signIndex switch
         {
@@ -334,68 +350,68 @@ public class BlackJackGame : BaseGameManager
     }
 
     
-
+    
     public void Result()
     {
         double betMoney = 0;
 
-        for (int i=0; i<players.Count; i++)
+        for (int i=0; i<playersList.Count; i++)
         {
-            playerId = players.Keys.ElementAt(i);
-            if (players[playerId].Busted())
+            playerId = playersList.Keys.ElementAt(i);
+            if (playersList[playerId].Busted())
             {
                 i++;
             }
 
-            if (players[playerId].score > dealerBot.score)
+            if (playersList[playerId].score > dealerBot.score)
             {
-                betMoney += players[playerId].bet * 2;
-                players[playerId].AddMoney(betMoney);
+                betMoney += playersList[playerId].bet * 2;
+                playersList[playerId].AddMoney(betMoney);
                 signIndex = 1;
-                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
-                photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
+                photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
+                photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playersList[playerId].money, i);
             }
 
-            if (players[playerId].score < dealerBot.score)
+            if (playersList[playerId].score < dealerBot.score)
             {
                 signIndex = 2;
-                photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
             }
 
-            if (players[playerId].score == dealerBot.score)
+            if (playersList[playerId].score == dealerBot.score)
             {
 
-                if (players[playerId].IfBlackJack() && !dealerBot.IfBlackJack())
+                if (playersList[playerId].IfBlackJack() && !dealerBot.IfBlackJack())
                 {
-                    betMoney = players[playerId].bet + players[playerId].bet * 1.5;
-                    players[playerId].AddMoney(betMoney);
+                    betMoney = playersList[playerId].bet + playersList[playerId].bet * 1.5;
+                    playersList[playerId].AddMoney(betMoney);
                     signIndex = 1;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playersList[playerId].money, i);
                 }
 
-                if (dealerBot.IfBlackJack() && !players[playerId].IfBlackJack())
+                if (dealerBot.IfBlackJack() && !playersList[playerId].IfBlackJack())
                 {
                     signIndex = 2;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
                 }
 
-                if (players[playerId].IfBlackJack() && dealerBot.IfBlackJack())
+                if (playersList[playerId].IfBlackJack() && dealerBot.IfBlackJack())
                 {
-                    betMoney += players[playerId].bet;
-                    players[playerId].AddMoney(betMoney);
+                    betMoney += playersList[playerId].bet;
+                    playersList[playerId].AddMoney(betMoney);
                     signIndex = 3;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playersList[playerId].money, i);
                 }
 
                 else
                 {
-                    betMoney += players[playerId].bet;
-                    players[playerId].AddMoney(betMoney);
+                    betMoney += playersList[playerId].bet;
+                    playersList[playerId].AddMoney(betMoney);
                     signIndex = 3;
-                    photonView.RPC("ShowAndHideResultSign", RpcTarget.All, signIndex, players[playerId].position);
-                    photonView.RPC("UpdateMoneyText", RpcTarget.All, players[playerId].money, i);
+                    photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position);
+                    photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playersList[playerId].money, i);
                 }
             }
 
@@ -408,12 +424,12 @@ public class BlackJackGame : BaseGameManager
     public override void EndGame()
     {
         base.EndGame();
-        for (int i=0; i<players.Count; i++)
+        for (int i=0; i<playersList.Count; i++)
         {
-            playerId = players.Keys.ElementAt(i);
-            players[playerId].ResetHand();
-            players[playerId].score = 0;
-            players[playerId].bet = 0;
+            playerId = playersList.Keys.ElementAt(i);
+            playersList[playerId].ResetHand();
+            playersList[playerId].score = 0;
+            playersList[playerId].bet = 0;
         }
         dealerBot.ResetHand();
         dealerBot.score = 0;
@@ -423,7 +439,7 @@ public class BlackJackGame : BaseGameManager
         }
 
         GameStart();
-    }*/
+    }
 
 
 }
