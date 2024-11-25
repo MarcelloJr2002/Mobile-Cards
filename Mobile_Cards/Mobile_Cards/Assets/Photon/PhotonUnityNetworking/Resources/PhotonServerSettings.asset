@@ -50,6 +50,13 @@ MonoBehaviour:
   - PositionButton
   - HideButton
   - AddPlayer
+  - DisplayTexts
+  - ToggleButtonsForPlayer
+  - PlayerConfirmedBet
+  - DealCards
+  - DealCardToPlayer
+  - DealCardToDealer
+  - ShowAndHideSign
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

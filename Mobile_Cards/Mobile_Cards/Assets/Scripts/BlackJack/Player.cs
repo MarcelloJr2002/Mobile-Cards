@@ -13,8 +13,7 @@ public class Player
     public double bet;
     public string UserName;
 
-    //public Transform position;
-    public Vector2 position;
+    public Vector3 position;
     public Photon.Realtime.Player PhotonPlayer;
     public bool aceInHand;
 
@@ -26,7 +25,7 @@ public class Player
         aceInHand = false;
         bet = 0;
         money = 1000;
-        position = new Vector2(0, 0);
+        position = new Vector3(0, 0, 0);
     }
 
 
@@ -37,7 +36,7 @@ public class Player
         aceInHand = false; 
         bet = 0;
         money = 1000;
-        position = new Vector2(0, 0);
+        position = new Vector3(0, 0, 0);
     }
 
     public Player()
@@ -46,10 +45,10 @@ public class Player
         score = 0;
         money= 1000;
         aceInHand = false;
-        position = new Vector2(0, 0);
+        position = new Vector3(0, 0, 0);
     }
 
-    public void SetPosition(Vector2  newPosition)
+    public void SetPosition(Vector3  newPosition)
     {
         
         position = newPosition;
@@ -67,7 +66,7 @@ public class Player
         if (aceInHand && score > 21)
         {
             score -= 10;
-            aceInHand &= false;
+            aceInHand = false;
         }
     }
 

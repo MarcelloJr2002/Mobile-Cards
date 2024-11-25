@@ -2,57 +2,53 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
+using JetBrains.Annotations;
+using Photon.Pun;
+using Photon.Realtime;
 
 public class CardDealer : MonoBehaviour
 {
     public GameObject cardPrefab;         
     public Transform dealerPosition;      
     public Transform canvasTransform;     
-    public float speed = 5f;              
-    public float cardOffsetY = 30f;       
+    public float speed = 500f;              
+    public float cardOffsetY = 40f;       
     public CardsModels cardsModels;       
     public Sprite cardBackSprite;         
-    public Deck deck;
+    //public Deck deck;
 
-
-    public IEnumerator DealCards(Player player)
+    public void DealCards(Player player, int id)
     {
-        GameObject card = Instantiate(cardPrefab, dealerPosition.position, Quaternion.Euler(0, 0, -90), canvasTransform);
+        GameObject card = Instantiate(cardPrefab, dealerPosition.position, Quaternion.Euler(0, 0, 0), canvasTransform);
 
         Image cardImage = card.GetComponent<Image>();
         if (cardImage != null)
         {
-            cardImage.sprite = cardBackSprite; 
+            cardImage.sprite = cardBackSprite;
         }
         else
         {
             Debug.LogError("Prefab karty nie ma komponentu Image.");
         }
 
-        Vector3 targetPosition = player.position;
 
-        StartCoroutine(MoveCard(card, targetPosition, player));
+        int cardId = id;
+        Vector3 basePosition = player.position;
+        int cardIndex = player.playerCards.Count - 1;
+        Vector3 targetPosition = basePosition + new Vector3(cardIndex * 60, 0, 0);
 
-        yield return new WaitForSeconds(0.5f);
-    }
-
-    private IEnumerator MoveCard(GameObject card, Vector3 targetPosition, Player player)
-    {
-        RectTransform cardRectTransform = card.GetComponent<RectTransform>();
-        while (Vector3.Distance(cardRectTransform.position, targetPosition) > 0.01f)
+        card.transform.DOMove(targetPosition, 1f).SetEase(Ease.OutCubic).OnComplete(() =>
         {
-            cardRectTransform.position = Vector3.MoveTowards(cardRectTransform.position, targetPosition, speed * Time.deltaTime);
-            yield return null;
-        }
 
-        cardRectTransform.position = targetPosition;
+            Image cardImage = card.GetComponent<Image>();
+            if (cardImage != null)
+            {
+                cardImage.sprite = cardsModels.getSpriteId(id);
+            }
+            Debug.Log("Animacja zakończona!");
+        });
 
-        Image cardImage = card.GetComponent<Image>();
-        if (cardImage != null)
-        {
-            Card drawnCard = deck.DrawCard();
-            cardImage.sprite = cardsModels.getSpriteId(drawnCard.id);
-            player.AddCardToHand(drawnCard);
-        }
+
     }
 }

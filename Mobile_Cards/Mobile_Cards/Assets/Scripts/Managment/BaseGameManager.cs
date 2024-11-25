@@ -16,7 +16,7 @@ public class BaseGameManager : MonoBehaviourPunCallbacks
 
     public virtual void EndGame()
     {
-        StartCoroutine(ClearCardsFromScene(2.0f));
+        //StartCoroutine(ClearCardsFromScene(2.0f));
     }
 
     public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
@@ -40,7 +40,7 @@ public class BaseGameManager : MonoBehaviourPunCallbacks
         }*/
     }
 
-    private IEnumerator ClearCardsFromScene(float delay)
+    /*private IEnumerator ClearCardsFromScene(float delay)
     {
         yield return new WaitForSeconds(delay);
 
@@ -48,5 +48,5 @@ public class BaseGameManager : MonoBehaviourPunCallbacks
         {
             Destroy(card);
         }
-    }
+    }*/
 }

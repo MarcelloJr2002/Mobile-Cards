@@ -61,7 +61,7 @@ public class Deck : MonoBehaviour
         int id = Random.Range(0, Cards.Count);
         Card drawnCard = Cards[id];
 
-        if(drawnCard != null)
+        if (drawnCard != null)
         {
             Cards.RemoveAt(id);
             return drawnCard;
@@ -71,6 +71,11 @@ public class Deck : MonoBehaviour
         {
             return DrawCard();
         }
+    }
+
+    public Card GetCardById(int id)
+    {
+        return Cards[id];
     }
 
 
