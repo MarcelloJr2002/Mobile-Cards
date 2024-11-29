@@ -7,6 +7,9 @@ using UnityEngine.UI;
 using System.Linq;
 using DG.Tweening;
 using Unity.VisualScripting;
+using SVSBluetooth;
+using System;
+using static SVSBluetooth.BluetoothForAndroid;
 
 public class BlackJackGame : BaseGameManager
 {
@@ -42,13 +45,24 @@ public class BlackJackGame : BaseGameManager
     private PhotonView photonView;
     private int playersConfirmed = 0;
     public Deck deck;
+    private Deck rpcDeck;
     private Vector3 signPosition = new Vector3(0, 150, 0);
+    private string message;
+    public Text btText;
+    public Text idText;
+    private int score = 0;
 
     private void Start()
     {
         dealerBot = new Player();
         //dealerBot.SetPosition(dealerPosition.position);
         photonView = GetComponent<PhotonView>();
+
+        if (GameModeManager.Instance.selectedMode == GameModeManager.GameMode.Bluetooth)
+        {
+            BluetoothForAndroid.ReceivedStringMessage += OnRecivedStringMessage;
+        }
+
     }
 
     public bool PhotonOrBluetooth()
@@ -77,7 +91,7 @@ public class BlackJackGame : BaseGameManager
     }
 
     public void PositionButtonClicked(GameObject button)
-    {   
+    {
 
         if (PhotonOrBluetooth())
         {
@@ -96,6 +110,36 @@ public class BlackJackGame : BaseGameManager
             }
         }
 
+        else
+        {
+            Player player = new("Player" + currentPlayerIndex);
+            playersList.Add(player.UserName, player);
+            playersList[player.UserName].position = button.transform.position;
+            //btText.text = player.UserName;
+            message = $"ADDPLAYER,{button.transform.position.x},{button.transform.position.y},{button.transform.position.z},{player.UserName},{currentPlayerIndex}";
+            BluetoothForAndroid.WriteMessage(message);
+            string hideMessage = $"HIDEBUTTON,{button.name}";
+            BluetoothForAndroid.WriteMessage(hideMessage);
+            foreach (var positionBtn in positionButtons)
+            {
+                positionBtn.gameObject.SetActive(false);
+            }
+            currentPlayerIndex += 1;
+            //idText.text = currentPlayerIndex.ToString();
+            BTDevice[] bondedDevices = BluetoothForAndroid.GetBondedDevices();
+
+            if (bondedDevices.Length == 2)
+            {
+                btText.text = bondedDevices[0].name;
+                idText.text = bondedDevices[1].name;
+            }
+
+            else
+            {
+                btText.text = bondedDevices.Length.ToString();
+            }
+
+        }
     }
 
     [PunRPC]
@@ -116,7 +160,7 @@ public class BlackJackGame : BaseGameManager
 
 
 
-    
+
     public override void OnPlayerEnteredRoom(Photon.Realtime.Player newPlayer)
     {
         base.OnPlayerEnteredRoom(newPlayer);
@@ -146,7 +190,7 @@ public class BlackJackGame : BaseGameManager
     [PunRPC]
     public void UpdateMoneyText(double amount, float x)
     {
-        for(int i=0; i<MoneyText.Length; i++)
+        for (int i = 0; i < MoneyText.Length; i++)
         {
             if (MoneyText[i].transform.position.x == x)
             {
@@ -159,7 +203,7 @@ public class BlackJackGame : BaseGameManager
     [PunRPC]
     public void DisplayBet(double betValue, float x)
     {
-        for(int i=0; i<betText.Length; i++)
+        for (int i = 0; i < betText.Length; i++)
         {
             if (betText[i].transform.position.x == x)
             {
@@ -171,20 +215,25 @@ public class BlackJackGame : BaseGameManager
 
     public void SetBet(double betValue)
     {
-        string localPlayerId = PhotonNetwork.LocalPlayer.NickName;
-
-        if (playersList.ContainsKey(localPlayerId))
+        if (PhotonOrBluetooth())
         {
-            playersList[localPlayerId].bet += betValue;
-            playersList[localPlayerId].DeductMoney(betValue);
+            string localPlayerId = PhotonNetwork.LocalPlayer.NickName;
 
-            double playerMoney = playersList[localPlayerId].money;
-            double playerBet = playersList[localPlayerId].bet;
-            float xPosition = playersList[localPlayerId].position.x;
+            if (playersList.ContainsKey(localPlayerId))
+            {
+                playersList[localPlayerId].bet += betValue;
+                playersList[localPlayerId].DeductMoney(betValue);
 
-            photonView.RPC("DisplayBet", RpcTarget.All, playerBet, xPosition);
-            photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, xPosition);
+                double playerMoney = playersList[localPlayerId].money;
+                double playerBet = playersList[localPlayerId].bet;
+                float xPosition = playersList[localPlayerId].position.x;
+
+                photonView.RPC("DisplayBet", RpcTarget.All, playerBet, xPosition);
+                photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, xPosition);
+            }
         }
+
+
     }
 
 
@@ -222,12 +271,12 @@ public class BlackJackGame : BaseGameManager
     }
 
 
-    
     public override void GameStart()
     {
         base.GameStart();
         currentPlayerIndex = 0;
         dealerBot.position = dealerPosition.position;
+        rpcDeck = deck;
         ChipButtonsAction();
         BetTurn();
     }
@@ -236,17 +285,19 @@ public class BlackJackGame : BaseGameManager
     [PunRPC]
     public void DealCardToPlayer(string pId, int cardId)
     {
-        Card card = deck.GetCardById(cardId);
+        Card card = rpcDeck.GetCardById(cardId);
+        Debug.Log("RCP card value: " + card.value);
         playersList[pId].AddCardToHand(card);
         cardDealer.DealCards(playersList[pId], cardId);
     }
 
     [PunRPC]
-    public void DealCardToDealer(int id)
+    public void DealCardToDealer(int cardId)
     {
-        Card card = deck.GetCardById(id);
+        Card card = rpcDeck.GetCardById(cardId);
+        Debug.Log("RCP card value: " + card.value);
         dealerBot.AddCardToHand(card);
-        cardDealer.DealCards(dealerBot, id);
+        cardDealer.DealCards(dealerBot, cardId);
     }
 
 
@@ -261,13 +312,16 @@ public class BlackJackGame : BaseGameManager
                     playerId = playersList.Keys.ElementAt(j);
                     Card drawnCard = deck.DrawCard();
                     Debug.Log(drawnCard.value);
-                    //playersList[playerId].AddCardToHand(drawnCard);
+                    Debug.Log("Card Id: " + drawnCard.id);
+                    playersList[playerId].AddCardToHand(drawnCard);
+                    Debug.Log("Score: " + playersList[playerId].score);
                     //cardDealer.DealCards(playersList[playerId], drawnCard.id);
                     photonView.RPC("DealCardToPlayer", RpcTarget.AllViaServer, playerId, drawnCard.id);
                 }
                 Card dealerCard = deck.DrawCard();
                 Debug.Log(dealerCard.value);
                 photonView.RPC("DealCardToDealer", RpcTarget.AllViaServer, dealerCard.id);
+                Debug.Log("Dealer score: " + dealerBot.score);
             }
         }
     }
@@ -279,8 +333,9 @@ public class BlackJackGame : BaseGameManager
         Card drawnCard = deck.DrawCard();
         playersList[playerIndex].AddCardToHand(drawnCard);
         photonView.RPC("DealCardToPlayer", RpcTarget.AllViaServer, playerId, drawnCard.id);
-        Debug.Log(playersList[playerIndex].score);
-        if (playersList[playerIndex].Busted())
+        score = playersList[playerIndex].score;
+        Debug.Log(" Hit Score: " + playersList[playerIndex].score);
+        if (playersList[playerIndex].Busted(score))
         {
             Debug.Log("Busted");
             signIndex = 0;
@@ -337,7 +392,7 @@ public class BlackJackGame : BaseGameManager
             photonView.RPC("DealCardToDealer", RpcTarget.AllViaServer, drawnCard.id);
         }
         Debug.Log("Dealer turn");
-        if (dealerBot.Busted())
+        if (dealerBot.Busted(dealerBot.score))
         {
             signIndex = 0;
             photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, dealerBot.position + signPosition);
@@ -403,7 +458,8 @@ public class BlackJackGame : BaseGameManager
         for (int i=0; i<playersList.Count; i++)
         {
             playerId = playersList.Keys.ElementAt(i);
-            if (playersList[playerId].Busted())
+            score = playersList[playerId].score;
+            if (playersList[playerId].Busted(score))
             {
                 i++;
             }
@@ -417,13 +473,13 @@ public class BlackJackGame : BaseGameManager
                 photonView.RPC("UpdateMoneyText", RpcTarget.AllViaServer, playersList[playerId].money, playersList[playerId].position.x);
             }
 
-            if (playersList[playerId].score < dealerBot.score && !dealerBot.Busted())
+            if (playersList[playerId].score < dealerBot.score && !dealerBot.Busted(dealerBot.score))
             {
                 signIndex = 2;
                 photonView.RPC("ShowAndHideResultSign", RpcTarget.AllViaServer, signIndex, playersList[playerId].position + signPosition);
             }
 
-            if (playersList[playerId].score == dealerBot.score && !playersList[playerId].Busted() && !dealerBot.Busted())
+            if (playersList[playerId].score == dealerBot.score && !playersList[playerId].Busted(score) && !dealerBot.Busted(dealerBot.score))
             {
 
                 if (playersList[playerId].IfBlackJack() && !dealerBot.IfBlackJack())
@@ -485,6 +541,69 @@ public class BlackJackGame : BaseGameManager
         }
 
         //GameStart();
+    }
+
+    void OnRecivedStringMessage(string message)
+    {
+        if (message.StartsWith("ADDPLAYER"))
+        {
+            string[] parts = message.Split(',');
+            if (parts.Length < 6)
+            {
+                Debug.LogWarning("Niepoprawny format wiadomości ADDPLAYER");
+                btText.text = "Wrong Format!";
+                return;
+            }
+
+            
+                // Pobierz współrzędne pozycji
+            float x = float.Parse(parts[1]);
+            float y = float.Parse(parts[2]);
+            float z = float.Parse(parts[3]);
+            string playerName = parts[4];
+            int id = int.Parse(parts[5]);
+
+            if (!playersList.ContainsKey(playerName))
+            {
+                Player player = new(playerName);
+                playersList.Add(playerName, player);
+                playersList[playerName].position = new Vector3(x, y, z);
+            }
+            else
+            {
+                Debug.LogWarning($"Player " + playerName+ "already exists!");
+            }
+
+            currentPlayerIndex = id + 1;
+            //idText.text = currentPlayerIndex.ToString();
+
+            //btText.text = $"Player added: " + playerName;
+        }
+
+        if(message.StartsWith("HIDEBUTTON"))
+        {
+            string[] parts = message.Split(',');
+            if (parts.Length < 2)
+            {
+                Debug.LogWarning("Niepoprawny format wiadomości HIDEBUTTON");
+                btText.text = "Wrong Format!";
+                return;
+            }
+
+            string btnName = parts[1];
+
+            GameObject newbutton = GameObject.Find(btnName);
+            if (newbutton != null && newbutton.activeSelf)
+            {
+                newbutton.SetActive(false);
+            }
+        }
+
+    }
+
+    void OnDestroy()
+    {
+        BluetoothForAndroid.ReceivedStringMessage -= OnRecivedStringMessage;
     }
 
 

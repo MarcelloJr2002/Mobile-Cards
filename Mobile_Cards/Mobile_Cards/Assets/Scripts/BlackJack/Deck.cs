@@ -58,7 +58,7 @@ public class Deck : MonoBehaviour
     {
         if(Cards.Count == 0)CreateDeck();
 
-        int id = Random.Range(0, Cards.Count);
+        int id = Random.Range(0, Cards.Count -1);
         Card drawnCard = Cards[id];
 
         if (drawnCard != null)
@@ -75,6 +75,17 @@ public class Deck : MonoBehaviour
 
     public Card GetCardById(int id)
     {
+        if (Cards == null || Cards.Count == 0)
+        {
+            CreateDeck();
+        }
+
+        if (id < 0 || id >= Cards.Count)
+        {
+            Debug.LogError($"Invalid card ID: {id}. Returning null.");
+            return null;
+        }
+
         return Cards[id];
     }
 

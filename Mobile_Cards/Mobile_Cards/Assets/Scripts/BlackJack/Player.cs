@@ -98,7 +98,7 @@ public class Player
         return false;
     }
 
-    public bool Busted()
+    public bool Busted(int score)
     {
         if(score > 21)
         {

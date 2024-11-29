@@ -68,19 +68,14 @@ public class GameModeManager : MonoBehaviour
                 gameManager = gameObject.AddComponent<BlackJackGame>();
                 break;
             case GameType.Poker:
-                gameManager = gameObject.AddComponent<PokerGameManager>();
+                gameManager = gameObject.AddComponent<Poker>();
                 break;
             case GameType.Makao:
-                gameManager = gameObject.AddComponent<MakaoGameManager>();
+                //gameManager = gameObject.AddComponent<MakaoGameManager>();
                 break;
         }
 
         gameManager.GameStart();
-    }
-
-    public void TestMethod()
-    {
-        Debug.Log("Message");
     }
 
 
