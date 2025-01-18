@@ -38,12 +38,12 @@ public class PhotonManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("Connected to Master in Photon.");
         PhotonNetwork.JoinLobby();
-        //InitializeGameManager();
     }
 
     public override void OnJoinedLobby()
     {
         Debug.Log("Joined Photon Lobby.");
-        SceneManager.LoadScene("CreateAndJoinRoom");
+        SceneManager.LoadScene("PlayerManager");
+        Debug.Log(Globals.localPlayerId);
     }
 }

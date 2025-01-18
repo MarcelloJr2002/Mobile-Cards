@@ -29,10 +29,10 @@ public class Card
 
     public enum CardColor
     {
-        Spade,
-        Hearts,
+        Club,
         Diamond,
-        Club
+        Heart,
+        Spade
     }
 
     public int getValue()

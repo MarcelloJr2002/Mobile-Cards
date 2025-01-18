@@ -32,7 +32,6 @@ public class GameModeManager : MonoBehaviour
     {
         BlackJack,
         Poker,
-        Makao
     }
 
     public GameMode selectedMode;
@@ -40,7 +39,6 @@ public class GameModeManager : MonoBehaviour
     public BaseGameManager gameManager;
 
     public PhotonManager photonManager;
-    //public BluetoothManager bluetoothManager;
 
     public void InitializeGameMode()
     {
@@ -70,13 +68,8 @@ public class GameModeManager : MonoBehaviour
             case GameType.Poker:
                 gameManager = gameObject.AddComponent<Poker>();
                 break;
-            case GameType.Makao:
-                //gameManager = gameObject.AddComponent<MakaoGameManager>();
-                break;
         }
 
         gameManager.GameStart();
     }
-
-
 }

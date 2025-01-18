@@ -39,14 +39,4 @@ public class BaseGameManager : MonoBehaviourPunCallbacks
             EndGame();
         }*/
     }
-
-    /*private IEnumerator ClearCardsFromScene(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-
-        foreach (GameObject card in GameObject.FindGameObjectsWithTag("CardsModels"))
-        {
-            Destroy(card);
-        }
-    }*/
 }

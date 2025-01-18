@@ -1,3 +1,4 @@
+﻿using DG.Tweening;
 using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +9,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
 {
     public InputField createInputField;
     public InputField joinInputField;
+    public Text infoText;
+
 
     public static RoomManager instance;
 
@@ -24,18 +27,72 @@ public class RoomManager : MonoBehaviourPunCallbacks
         }
     }
 
+    public void ShowText(string text)
+    {
+        // Ustaw początkową przezroczystość na 0 (tekst niewidoczny)
+        infoText.color = new Color(infoText.color.r, infoText.color.g, infoText.color.b, 0);
+        infoText.text = text;
+
+        // Animacja pojawienia się
+        infoText.DOFade(1, 0.5f) // Fade-in w 0.5 sekundy
+            .OnComplete(() =>
+            {
+                // Po 2 sekundach zniknij
+                infoText.DOFade(0, 0.5f).SetDelay(2f); // Fade-out w 0.5 sekundy po opóźnieniu 2 sekund
+            });
+    }
+
     public void CreateRoom()
     {
-        PhotonNetwork.CreateRoom(createInputField.text);
+        if(createInputField.text == "")
+        {
+            infoText.text = "Input fiedl cannot be empty!";
+            ShowText(infoText.text);
+            Debug.Log("Input fiedl cannot be empty!");
+        }
+
+        else
+        {
+            PhotonNetwork.CreateRoom(createInputField.text);
+        }
     }
 
     public void JoinRoom()
     {
-        PhotonNetwork.JoinRoom(joinInputField.text);
+        if (joinInputField.text == "")
+        {
+            infoText.text = "Input fiedl cannot be empty!";
+            ShowText(infoText.text);
+            Debug.Log("Input fiedl cannot be empty!");
+        }
+
+        else
+        {
+            PhotonNetwork.JoinRoom(joinInputField.text);
+        }
+    }
+
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        infoText.text = "Room doesn't exist!";
+        ShowText(infoText.text);
     }
 
     public override void OnJoinedRoom()
     {
-        PhotonNetwork.LoadLevel("BlackJack");
+        if(GameModeManager.Instance.selectedGameType == GameModeManager.GameType.BlackJack)
+        {
+            PhotonNetwork.LoadLevel("BlackJack");
+        }
+
+        else if(GameModeManager.Instance.selectedGameType == GameModeManager.GameType.Poker)
+        {
+            PhotonNetwork.LoadLevel("Poker");
+        }
+
+        else
+        {
+            Debug.Log("This Game Type doesn't exist!");
+        }
     }
 }

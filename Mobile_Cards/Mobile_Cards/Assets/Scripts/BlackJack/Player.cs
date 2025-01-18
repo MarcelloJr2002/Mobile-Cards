@@ -16,6 +16,11 @@ public class Player
     public Vector3 position;
     public Photon.Realtime.Player PhotonPlayer;
     public bool aceInHand;
+    public List<GameObject> cardsObjects;
+    public string pokerPosition;
+    public bool ifFolded;
+    public bool ifRaised;
+    public string name;
 
     public Player(Photon.Realtime.Player photonPlayer)
     {
@@ -26,6 +31,11 @@ public class Player
         bet = 0;
         money = 1000;
         position = new Vector3(0, 0, 0);
+        cardsObjects = new List<GameObject>();
+        pokerPosition = string.Empty;
+        ifFolded = false;
+        ifRaised = false;
+        name = string.Empty;
     }
 
 
@@ -37,6 +47,9 @@ public class Player
         bet = 0;
         money = 1000;
         position = new Vector3(0, 0, 0);
+        cardsObjects = new List<GameObject>();
+        pokerPosition= string.Empty;
+        ifFolded = false;
     }
 
     public Player()
@@ -46,6 +59,7 @@ public class Player
         money= 1000;
         aceInHand = false;
         position = new Vector3(0, 0, 0);
+        cardsObjects = new List<GameObject>();
     }
 
     public void SetPosition(Vector3  newPosition)
@@ -61,11 +75,13 @@ public class Player
 
         if (card.cardType == Card.CardType.Ace)
         {
+            Debug.Log("Ace");
             aceInHand = true;
         }
         if (aceInHand && score > 21)
         {
             score -= 10;
+            Debug.Log(score);
             aceInHand = false;
         }
     }
@@ -98,6 +114,12 @@ public class Player
         return false;
     }
 
+    public void DeleteExtraCard()
+    {
+        score -= playerCards[playerCards.Count - 1].value;
+        playerCards.Remove(playerCards[playerCards.Count - 1]);
+    }
+
     public bool Busted(int score)
     {
         if(score > 21)
@@ -105,6 +127,11 @@ public class Player
             return true;
         }
         return false;
+    }
+
+    public void Fold()
+    {
+        ifFolded = true;
     }
 
     

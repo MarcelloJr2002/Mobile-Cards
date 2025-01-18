@@ -11,12 +11,12 @@ public class BluetoothManager : MonoBehaviour
 
     private bool waitingForConnection = false;
     public Text messageText;
+    public string masterClient = "";
 
     private Dictionary<GameType, string> gameScenes = new Dictionary<GameType, string>
     {
         { GameType.BlackJack, "BlackJack" },
         { GameType.Poker, "Poker" },
-        { GameType.Makao, "Makao" }
     };
 
     private void Awake()
@@ -101,6 +101,7 @@ public class BluetoothManager : MonoBehaviour
         BluetoothForAndroid.CreateServer("562a93dc-19d4-449e-b2b0-7deb5459c743");
         Debug.Log("Bluetooth server created.");
         waitingForConnection = true;
+        masterClient = Globals.localPlayerId;
         messageText.text = "Server created";
     }
 
@@ -127,7 +128,7 @@ public class BluetoothManager : MonoBehaviour
         }
     }
 
-    //Metoda do testu przycisku
+
     public void BtnMessage()
     {
         Debug.Log("Button Clicked!");

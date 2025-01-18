@@ -58,6 +58,26 @@ MonoBehaviour:
   - DealCardToDealer
   - ShowAndHideSign
   - CreateRPCDeck
+  - EndGameRPC
+  - CheckRpc
+  - DealCardsOnTable
+  - UpdatePosition
+  - CallRPC
+  - RaiseRPC
+  - FoldRPC
+  - CheckRPC
+  - ShowDownRPC
+  - RemovePlayer
+  - GameStartRPC
+  - UpdateGameStateRPC
+  - RevealCards
+  - GameSartRPC
+  - StartGameRPC
+  - TestMethod
+  - WinnerAnimation
+  - ShowPoints
+  - ShowPointsRPC
+  - DealerTurn
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

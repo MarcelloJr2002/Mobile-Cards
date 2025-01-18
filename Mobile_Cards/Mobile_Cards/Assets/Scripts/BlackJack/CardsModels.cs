@@ -19,4 +19,9 @@ public class CardsModels : MonoBehaviour
             return null;
         }
     }
+
+    public Sprite GetRandomSprite()
+    {
+        return cardSprites[Random.Range(0, cardSprites.Count)];
+    }
 }

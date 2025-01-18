@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.VisualScripting;
@@ -7,77 +7,87 @@ using UnityEngine;
 public class Deck : MonoBehaviour
 {
     public List<Card> Cards = new List<Card>();
-    
+    //public CardsModels sprites;
+
+    private void Start()
+    {
+        CreateDeck();
+    }
+
 
     public void CreateDeck()
     {
         int id = 0;
 
-        for (int j = 0; j < 13; j++)
-        {
-            if (j == 0) Cards.Add(new Card(id, 11, Card.CardType.Ace, Card.CardColor.Spade));
-            else if (j == 10) Cards.Add(new Card(id, 10, Card.CardType.Jack, Card.CardColor.Spade));
-            else if (j == 11) Cards.Add(new Card(id, 10, Card.CardType.Queen, Card.CardColor.Spade));
-            else if (j == 12) Cards.Add(new Card(id, 10, Card.CardType.King, Card.CardColor.Spade));
-            else Cards.Add(new Card(id, j + 1, Card.CardType.Numerical, Card.CardColor.Spade));
-            id++;
-        }
+        // Pobieramy aktualny typ gry
+        string gameType = GameModeManager.Instance.selectedGameType.ToSafeString();
 
-        for (int j = 0; j < 13; j++)
-        {
-            if (j == 0) Cards.Add(new Card(id, 11, Card.CardType.Ace, Card.CardColor.Club));
-            else if (j == 10) Cards.Add(new Card(id, 10, Card.CardType.Jack, Card.CardColor.Club));
-            else if (j == 11) Cards.Add(new Card(id, 10, Card.CardType.Queen, Card.CardColor.Club));
-            else if (j == 12) Cards.Add(new Card(id, 10, Card.CardType.King, Card.CardColor.Club));
-            else Cards.Add(new Card(id, j + 1, Card.CardType.Numerical, Card.CardColor.Club));
-            id++;
-        }
+        Debug.Log("Game type: " + gameType);
 
-        for (int j = 0; j < 13; j++)
+        // Przechodzimy przez wszystkie kolory kart
+        foreach (Card.CardColor color in System.Enum.GetValues(typeof(Card.CardColor)))
         {
-            if (j == 0) Cards.Add(new Card(id, 11, Card.CardType.Ace, Card.CardColor.Hearts));
-            else if (j == 10) Cards.Add(new Card(id, 10, Card.CardType.Jack, Card.CardColor.Hearts));
-            else if (j == 11) Cards.Add(new Card(id, 10, Card.CardType.Queen, Card.CardColor.Hearts));
-            else if (j == 12) Cards.Add(new Card(id, 10, Card.CardType.King, Card.CardColor.Hearts));
-            else Cards.Add(new Card(id, j + 1, Card.CardType.Numerical, Card.CardColor.Hearts));
-            id++;
-        }
+            for (int j = 0; j < 13; j++)
+            {
+                int cardValue;
+                Card.CardType cardType;
 
-        for (int j = 0; j <= 13; j++)
-        {
-            if (j == 0) Cards.Add(new Card(id, 11, Card.CardType.Ace, Card.CardColor.Diamond));
-            else if (j == 10) Cards.Add(new Card(id, 10, Card.CardType.Jack, Card.CardColor.Diamond));
-            else if (j == 11) Cards.Add(new Card(id, 10, Card.CardType.Queen, Card.CardColor.Diamond));
-            else if (j == 12) Cards.Add(new Card(id, 10, Card.CardType.King, Card.CardColor.Diamond));
-            else Cards.Add(new Card(id, j + 1, Card.CardType.Numerical, Card.CardColor.Diamond));
-            id++;
+                // Przypisujemy wartości i typy kart na podstawie gameType
+                if (j == 0)
+                {
+                    cardValue = gameType == "BlackJack" ? 11 : 14;
+                    cardType = Card.CardType.Ace;
+                }
+                else if (j == 10)
+                {
+                    cardValue = gameType == "BlackJack" ? 10 : 11;
+                    cardType = Card.CardType.Jack;
+                }
+                else if (j == 11)
+                {
+                    cardValue = gameType == "BlackJack" ? 10 : 12;
+                    cardType = Card.CardType.Queen;
+                }
+                else if (j == 12)
+                {
+                    cardValue = gameType == "BlackJack" ? 10 : 13;
+                    cardType = Card.CardType.King;
+                }
+                else
+                {
+                    cardValue = j + 1; // Wartość numeryczna
+                    cardType = Card.CardType.Numerical;
+                }
+
+                // Tworzymy i dodajemy kartę do talii
+                Cards.Add(new Card(id, cardValue, cardType, color));
+                id++;
+            }
         }
     }
+
 
     public Card DrawCard()
     {
-        if(Cards.Count == 0)CreateDeck();
+        if (Cards == null || Cards.Count == 0)
+        {
+            CreateDeck();
+        }
 
-        int id = Random.Range(0, Cards.Count -1);
+        int id = Random.Range(0, Cards.Count); // Poprawny zakres
         Card drawnCard = Cards[id];
 
-        if (drawnCard != null)
-        {
-            Cards.RemoveAt(id);
-            return drawnCard;
-        }
-
-        else
-        {
-            return DrawCard();
-        }
+        //Cards.RemoveAt(id);
+        return drawnCard;
     }
+
 
     public Card GetCardById(int id)
     {
         if (Cards == null || Cards.Count == 0)
         {
-            CreateDeck();
+            Debug.LogError("No cards in the deck. Returning null.");
+            return null;
         }
 
         if (id < 0 || id >= Cards.Count)
@@ -86,8 +96,11 @@ public class Deck : MonoBehaviour
             return null;
         }
 
-        return Cards[id];
+        Card card = Cards[id];
+        //Cards.RemoveAt(id);
+        return card;
     }
+
 
 
 }

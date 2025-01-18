@@ -20,6 +20,7 @@ public class ConnectionChoice : MonoBehaviour
         //GameModeManager.Instance.InitializeGameMode();
         Debug.Log("BT");
         message.text = "Bluetooth";
-        SceneManager.LoadScene("BTConnect");
+        //SceneManager.LoadScene("BTConnect");
+        SceneManager.LoadScene("PlayerManager");
     }
 }
