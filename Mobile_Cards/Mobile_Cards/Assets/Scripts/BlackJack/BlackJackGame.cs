@@ -61,7 +61,12 @@ public class BlackJackGame : BaseGameManager
     private int dealerCardsCount;
     private int[] playerCardsCount = new int[2];
     private int methodCount = 0;
-
+    public Button testButton;
+    public GameObject testObject;
+    public GameObject cardPrefab;
+    public Transform canvasTransform;
+    public CardsModels cardsModels;
+    public Sprite cardBackSprite;
     private void Start()
     {
         dealerBot = new Player();
@@ -418,11 +423,25 @@ public class BlackJackGame : BaseGameManager
     {
         currentPlayerIndex = 0;
         playerId = playersList.Keys.ElementAt(currentPlayerIndex);
-        if(PhotonNetwork.IsMasterClient)
+
+        if(PhotonOrBluetooth())
         {
-            DealInitialCards();
+            if (PhotonNetwork.IsMasterClient)
+            {
+                DealInitialCards();
+            }
         }
-        HitStandTurn();
+
+        else
+        {
+            if (BluetoothManager.Instance.masterClient == Globals.localPlayerId)
+            {
+
+            }
+        }
+
+        //DealInitialCards();
+        //HitStandTurn();
         /*
         if (!PhotonOrBluetooth()) 
         {
@@ -477,18 +496,17 @@ public class BlackJackGame : BaseGameManager
                 rpcDeck = deck;
                 playerId = playersList.Keys.ElementAt(currentPlayerIndex);
 
-                Card drawnCard = deck.DrawCard();
-                playersList[playerId].AddCardToHand(drawnCard);
-                cardDealer.Deal(playersList[playerId], drawnCard.id, true);
-
                 
-                if(methodCount < 1)
+                ShowText("After deal");
+
+
+                if (methodCount < 1)
                 {
                     ChipButtonsAction();
-                }/*
+                }
                 BetTurn();
                 message = $"GAMESTART,{currentPlayerIndex},{dealerBot.position.x},{dealerBot.position.y},{dealerBot.position.z}";
-                BluetoothForAndroid.WriteMessage(message);*/
+                BluetoothForAndroid.WriteMessage(message);
             }
 
             else
@@ -572,46 +590,7 @@ public class BlackJackGame : BaseGameManager
             }
         }
 
-        else
-        {
-            for (int i = 0; i < 2; i++)
-            {
-                for (int j = 0; j < playersList.Count; j++)
-                {
-                    playerId = playersList.Keys.ElementAt(j);
-                    Card drawnCard = deck.DrawCard();
-                    playersList[playerId].AddCardToHand(drawnCard);
-                    StartCoroutine(cardDealer.DealCards(playersList[playerId], drawnCard.id, true));
-                    //cardDealer.Deal(playersList[playerId], drawnCard.id, true);
-                    ShowText(drawnCard.value.ToString());
-                    message = $"DEALCARDSPLAYER,{playerId},{drawnCard.id}";
-                    //BluetoothForAndroid.WriteMessage(message);
-                    playersScore[j] = playersList[playerId].score;
-                }
-                Card dealerCard = deck.DrawCard();
-                //ShowText(dealerCard.value.ToString());
-                dealerBot.AddCardToHand(dealerCard);
-                if (i == 1)
-                {
-                    showDealerCard = false;
-                }
-                StartCoroutine(cardDealer.DealCards(dealerBot, dealerCard.id, showDealerCard));
-                //cardDealer.Deal(dealerBot, dealerCard.id, showDealerCard);
-                message = $"DEALCARDSDEALER,{dealerCard.id},{showDealerCard}";
-                //BluetoothForAndroid.WriteMessage(message);
-
-            }
-            /*
-            if (playersList[Globals.localPlayerId].playerCards == null)
-            {
-                ShowText("Cards are null!");
-            }
-
-            if(playersList[Globals.localPlayerId].playerCards != null)
-            {
-                ShowText("Player cards: " + playersList[Globals.localPlayerId].playerCards.Count + " + " + playersList[Globals.localPlayerId].cardsObjects.Count);
-            }*/
-        }
+        
 
     }
 
@@ -1114,7 +1093,7 @@ public class BlackJackGame : BaseGameManager
             Debug.Log("RCP card value: " + card.value);
             playersList[id].AddCardToHand(card);
             //StartCoroutine(cardDealer.DealCards(playersList[id], cardId, true));
-            cardDealer.Deal(playersList[playerId], cardId, true);
+            //cardDealer.Deal(playersList[playerId], cardId, true);
 
         }
 
@@ -1136,7 +1115,7 @@ public class BlackJackGame : BaseGameManager
             Debug.Log("RCP card value: " + card.value);
             dealerBot.AddCardToHand(card);
             //StartCoroutine(cardDealer.DealCards(dealerBot, id, showDealerCard));
-            cardDealer.Deal(dealerBot, id, showDealerCard);
+            //cardDealer.Deal(dealerBot, id, showDealerCard);
 
         }
 

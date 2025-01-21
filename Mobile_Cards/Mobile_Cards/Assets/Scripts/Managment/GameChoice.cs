@@ -24,4 +24,14 @@ public class GameChoice : MonoBehaviour
             SceneManager.LoadScene("ConnectionChoice");
         }
     }
+
+    public void ChooseMakao()
+    {
+        GameModeManager gameModeManager = FindObjectOfType<GameModeManager>();
+        if (gameModeManager != null)
+        {
+            gameModeManager.selectedGameType = GameModeManager.GameType.Makao;
+            SceneManager.LoadScene("ConnectionChoice");
+        }
+    }
 }

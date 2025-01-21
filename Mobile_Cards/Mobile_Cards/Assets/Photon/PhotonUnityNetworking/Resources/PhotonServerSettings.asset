@@ -78,6 +78,17 @@ MonoBehaviour:
   - ShowPoints
   - ShowPointsRPC
   - DealerTurn
+  - MoveCardFromHand
+  - HandleBlockDrawCards
+  - HandleChangeSuit
+  - HandleDrawCards
+  - HandleRequestCard
+  - HandleSkipTurn
+  - RearrangeCardsRPC
+  - SetCanHandleRequest
+  - SetColor
+  - SetRequestedCard
+  - SetRequestedCardRPC
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

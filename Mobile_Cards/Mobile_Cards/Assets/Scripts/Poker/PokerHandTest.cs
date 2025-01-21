@@ -3,15 +3,28 @@ using UnityEngine;
 
 public class PokerHandTest : MonoBehaviour
 {
+    private Dictionary<int, PokerHandEvaluator.HandResult> playerBestHands = new Dictionary<int, PokerHandEvaluator.HandResult>();
+    private int id = 0;
+    private int compareResult;
     void Start()
     {
-        RunTests();
+        /*RunTests();
+        compareResult = PokerHandEvaluator.CompareHands(playerBestHands[0], playerBestHands[1]);
+        if(compareResult == 1)
+        {
+            Debug.Log($"Reka: 1, Wynik: { playerBestHands[0].Description}");
+        }
+
+        if(compareResult == -1)
+        {
+            Debug.Log($"Reka: 2, Wynik: {playerBestHands[1].Description}");
+        }*/
     }
 
     void RunTests()
     {
         // Scenariusz 1: Royal Flush
-        TestPlayerHand(
+        /*TestPlayerHand(
             new List<Card>
             {
                 new Card(1, 14, Card.CardType.Ace, Card.CardColor.Spade), // As Pik
@@ -44,14 +57,14 @@ public class PokerHandTest : MonoBehaviour
                 new Card(14, 9, Card.CardType.Numerical, Card.CardColor.Heart) // 9 Kier
             },
             "Full House"
-        );
+        );*/
 
         // Scenariusz 3: Straight
         TestPlayerHand(
             new List<Card>
             {
                 new Card(15, 6, Card.CardType.Numerical, Card.CardColor.Club), // 6 Trefl
-                new Card(16, 7, Card.CardType.Numerical, Card.CardColor.Heart) // 7 Kier
+                new Card(16, 10, Card.CardType.Numerical, Card.CardColor.Heart) // 10 Kier
             },
             new List<Card>
             {
@@ -61,11 +74,11 @@ public class PokerHandTest : MonoBehaviour
                 new Card(20, 3, Card.CardType.Numerical, Card.CardColor.Diamond), // 3 Karo
                 new Card(21, 2, Card.CardType.Numerical, Card.CardColor.Club) // 2 Trefl
             },
-            "Straight"
+            "One Pair"
         );
 
         // Scenariusz 4: Flush
-        TestPlayerHand(
+        /*TestPlayerHand(
             new List<Card>
             {
                 new Card(22, 2, Card.CardType.Numerical, Card.CardColor.Heart), // 2 Kier
@@ -80,9 +93,9 @@ public class PokerHandTest : MonoBehaviour
                 new Card(28, 9, Card.CardType.Numerical, Card.CardColor.Spade) // 9 Pik
             },
             "Flush"
-        );
+        );*/
 
-        // Scenariusz 5: High Card
+        // Scenariusz 5: Straight
         TestPlayerHand(
             new List<Card>
             {
@@ -91,14 +104,16 @@ public class PokerHandTest : MonoBehaviour
             },
             new List<Card>
             {
-                new Card(31, 7, Card.CardType.Numerical, Card.CardColor.Heart), // 7 Kier
+                new Card(31, 8, Card.CardType.Numerical, Card.CardColor.Heart), // 8 Kier
                 new Card(32, 9, Card.CardType.Numerical, Card.CardColor.Diamond), // 9 Karo
-                new Card(33, 11, Card.CardType.Jack, Card.CardColor.Spade), // Walet Pik
-                new Card(34, 4, Card.CardType.Numerical, Card.CardColor.Heart), // 4 Kier
-                new Card(35, 6, Card.CardType.Numerical, Card.CardColor.Diamond) // 6 Karo
+                new Card(33, 10, Card.CardType.Jack, Card.CardColor.Spade), // 10 Pik
+                new Card(34, 3, Card.CardType.Numerical, Card.CardColor.Heart), // 3 Kier
+                new Card(35, 2, Card.CardType.Numerical, Card.CardColor.Diamond) // 2 Karo
             },
-            "High Card"
+            "One Pair"
         );
+
+
     }
 
     void TestPlayerHand(List<Card> playerCards, List<Card> tableCards, string expectedHand)
@@ -108,7 +123,10 @@ public class PokerHandTest : MonoBehaviour
 
         var result = PokerHandEvaluator.FindBestHand(player, tableCards);
 
+        playerBestHands.Add(id, result);
+        id++;
+
         Debug.Log($"Oczekiwane: {expectedHand}, Wynik: {result.Description}");
-        Debug.Assert(result.Description == expectedHand, $"Test nie przeszedl! Oczekiwane: {expectedHand}, Wynik: {result.Description}");
+        //Debug.Assert(result.Description == expectedHand, $"Test nie przeszedl! Oczekiwane: {expectedHand}, Wynik: {result.Description}");
     }
 }

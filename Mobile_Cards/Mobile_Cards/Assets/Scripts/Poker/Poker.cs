@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.UI;
 
 public class Poker : BaseGameManager
@@ -52,6 +53,8 @@ public class Poker : BaseGameManager
     private int signIndex = 0;
     private Player winner;
     private Player raiser;
+    public List<GameObject> tableCards = new List<GameObject>();
+    private int compareResult;
 
 
 
@@ -107,10 +110,10 @@ public class Poker : BaseGameManager
             targetPosition = button.transform.position;
             Debug.Log(targetPosition);
 
-            photonView.RPC("AddPlayer", RpcTarget.AllViaServer, PhotonNetwork.LocalPlayer.NickName, button.transform.position);
+            photonView.RPC("AddPlayer", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.NickName, button.transform.position);
 
 
-            photonView.RPC("HideButton", RpcTarget.AllViaServer, button.name);
+            photonView.RPC("HideButton", RpcTarget.AllBuffered, button.name);
 
             if (PhotonNetwork.LocalPlayer.IsLocal)
             {
@@ -186,8 +189,11 @@ public class Poker : BaseGameManager
             {
                 MoneyText[i].text = amount.ToString() + "$";
                 Debug.Log(MoneyText[i].text);
-                message = $"UPDATEMONEY,{MoneyText[i].text},{i}";
-                BluetoothForAndroid.WriteMessage(message);
+                if(!PhotonOrBluetooth())
+                {
+                    message = $"UPDATEMONEY,{MoneyText[i].text},{i}";
+                    BluetoothForAndroid.WriteMessage(message);
+                }
                 break;
             }
         }
@@ -201,8 +207,11 @@ public class Poker : BaseGameManager
             {
                 betText[i].text = betValue.ToString() + "$";
                 Debug.Log(betText[i].text);
-                message = $"SHOWBET,{betText[i].text},{i}";
-                BluetoothForAndroid.WriteMessage(message);
+                if(!PhotonOrBluetooth())
+                {
+                    message = $"SHOWBET,{betText[i].text},{i}";
+                    BluetoothForAndroid.WriteMessage(message);
+                }
                 break;
             }
         }
@@ -236,10 +245,11 @@ public class Poker : BaseGameManager
                 double playerMoney = playersList[playerId].money;
                 double playerBet = playersList[playerId].bet;
                 float xPosition = playersList[playerId].position.x;
-                photonView.RPC("DisplayBet", RpcTarget.All, playerBet, xPosition);
-                photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, xPosition);
+                DisplayBet(playerBet, xPosition);
+                UpdateMoney(playerMoney, xPosition);
             }
             potText.text = pot.ToString();
+            bet = smallBlind;
             
             DealInitialCards();
         }
@@ -289,7 +299,7 @@ public class Poker : BaseGameManager
                     Debug.Log("Card value: " + drawnCard.value + " " + drawnCard.cardType + " " + drawnCard.cardColor);
                     Debug.Log(drawnCard.ToString());
 
-                    playersList[playerId].AddCardToHand(drawnCard);
+                    //playersList[playerId].AddCardToHand(drawnCard);
                     photonView.RPC("DealCardToPlayer", RpcTarget.AllViaServer, playerId, drawnCard.id);
                 }
             }
@@ -404,47 +414,31 @@ public class Poker : BaseGameManager
     [PunRPC]
     public void UpdateTurn(string moment)
     {
-        bet = 0; // Zresetuj aktualny bet
+        bet = 0;
+        ifChecked = false;
+        raiseCondition = false;
+        currentPlayerIndex = 0;
+
         switch (moment)
         {
             case "PreFlop":
-                if (playersList[playerId].pokerPosition == "BB")
-                {
-                    gameMoment = "Flop";
-                    ifChecked = false;
-                    raiseCondition = false;
-                    Flop();
-                }
+                gameMoment = "Flop";
+                Flop();
                 break;
 
             case "Flop":
-                if (playersList[playerId].pokerPosition == "BTN" && playersList.Count > 2 || playersList[playerId].pokerPosition == "BB" && playersList.Count == 2)
-                {
-                    gameMoment = "Turn";
-                    ifChecked = false;
-                    raiseCondition = false;
-                    Turn();
-                }
+                gameMoment = "Turn";
+                Turn();
                 break;
 
             case "Turn":
-                if (playersList[playerId].pokerPosition == "BTN" && playersList.Count > 2 || playersList[playerId].pokerPosition == "BB" && playersList.Count == 2)
-                {
-                    gameMoment = "River";
-                    ifChecked = false;
-                    raiseCondition = false;
-                    River();
-                }
+                gameMoment = "River";
+                River();
                 break;
 
             case "River":
-                if (playersList[playerId].pokerPosition == "BTN" && playersList.Count > 2 || playersList[playerId].pokerPosition == "BB" && playersList.Count == 2)
-                {
-                    gameMoment = "ShowDown";
-                    ifChecked = false;
-                    raiseCondition = false;
-                    StartCoroutine(ShowDown());
-                }
+                gameMoment = "ShowDown";
+                StartCoroutine(ShowDown());
                 break;
 
             default:
@@ -627,7 +621,7 @@ public class Poker : BaseGameManager
 
         Debug.Log("Flop card rpc: " + card.id);
 
-        StartCoroutine(cardDealer.PokerDealer(card.id, tablePosition.position, howMany));
+        StartCoroutine(cardDealer.PokerDealer(card.id, tablePosition.position, howMany, tableCards));
     }
 
 
@@ -761,9 +755,11 @@ public class Poker : BaseGameManager
         }
 
         var winningHand = playerBestHands[playerId];
-        int compareResult;
+        //int compareResult;
+        playerId = playersList.Keys.ElementAt(0);
+        winner = playersList[playerId];
 
-        for(int i=0; i<playersList.Count; i++)
+        for (int i=0; i<playersList.Count; i++)
         {
             playerId = playersList.Keys.ElementAt(i);
             compareResult = PokerHandEvaluator.CompareHands(winningHand, playerBestHands[playerId]);
@@ -772,8 +768,24 @@ public class Poker : BaseGameManager
                 winningHand = playerBestHands[playerId];
                 winner = playersList[playerId];
             }
+
+            if(compareResult == 0)
+            {
+                winner = playersList[playerId];
+            }
         }
-        AssignResultSign(winningHand.Description);
+        if(compareResult != 0)
+        {
+            AssignResultSign(winningHand.Description);
+            StartCoroutine(ShowAndHideSign(signIndex, winner.position));
+        }
+
+        else
+        {
+            ShowText("Draw");
+        }
+
+        EndGame();
     }
 
     private IEnumerator ShowAndHideSign(int index, Vector3 position)
@@ -806,45 +818,79 @@ public class Poker : BaseGameManager
             });
         });
 
-        yield return new WaitForSeconds(5);
+        yield return new WaitForSeconds(2);
     }
 
     [PunRPC]
     public void WinnerAnimation()
     {
-        if(winner.position == null || resultSign[signIndex] == null)
-        {
-            ShowText("There's a null here");
-            return;
-        }
-        else
-        {
-            Debug.Log("WinnerAnimation!");
-            StartCoroutine(ShowAndHideSign(signIndex, winner.position));
-        }
+        Debug.Log("WinnerAnimation!");
+        Debug.Log(winner == null);
+        StartCoroutine(ShowAndHideSign(signIndex, winner.position));
     }
 
     [PunRPC]
-    public void RevealCards(string playerId)
+    public void RevealCards(string Id)
     {
-        cardDealer.RenderHiddenCard(playersList[playerId].playerCards[1].id, playersList[playerId].cardsObjects[1]);
-        cardDealer.RenderHiddenCard(playersList[playerId].playerCards[0].id, playersList[playerId].cardsObjects[0]);
+        cardDealer.RenderHiddenCard(playersList[Id].playerCards[1].id, playersList[Id].cardsObjects[1]);
+        cardDealer.RenderHiddenCard(playersList[Id].playerCards[0].id, playersList[Id].cardsObjects[0]);
     }
 
 
     public IEnumerator ShowDown()
     {
-        photonView.RPC("RevealCards", RpcTarget.Others, Globals.localPlayerId);
-        yield return new WaitForSeconds(0.3f);
-        photonView.RPC("ShowDownRPC", RpcTarget.AllViaServer);
-        yield return new WaitForSeconds(5);
-        photonView.RPC("WinnerAnimation", RpcTarget.All);
+        if(PhotonNetwork.IsMasterClient)
+        {
+            photonView.RPC("RevealCards", RpcTarget.Others, Globals.localPlayerId);
+            yield return new WaitForSeconds(0.3f);
+            photonView.RPC("ShowDownRPC", RpcTarget.AllViaServer);
+        }
     }
 
     public override void EndGame()
     {
         base.EndGame();
-        ShowText("Winner: " + winner.name);
+        Debug.Log("EndGame");
+        deck = rpcDeck;
+        bet = 0;
+        ifChecked = false;
+        raiseCondition = false;
+        currentPlayerIndex = 0;
+
+        for (int i = 0; i < playersList.Count; i++)
+        {
+            playerId = playersList.Keys.ElementAt(i);
+            playersList[playerId].ResetHand();
+            playersList[playerId].score = 0;
+            playersList[playerId].bet = 0;
+            
+
+            for (int j = 0; j < playersList[playerId].cardsObjects.Count; j++)
+            {
+                StartCoroutine(cardDealer.DestroyCards(playersList[playerId].cardsObjects[j]));
+            }
+            playersList[playerId].cardsObjects.Clear();
+            Debug.Log("Player objects: " + playersList[playerId].cardsObjects.Count);
+        }
+
+        for (int i = 0; i < betText.Length; i++)
+        {
+            betText[i].text = "";
+        }
+
+        foreach(var card in tableCards)
+        {
+            StartCoroutine(cardDealer.DestroyCards(card));
+        }
+        tableCards.Clear();
+        playerBestHands.Clear();
+
+        PhotonNetwork.RemoveBufferedRPCs(photonView.ViewID);
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            masterButton.SetActive(true);
+        }
     }
 
     void OnRecivedStringMessage(string message)

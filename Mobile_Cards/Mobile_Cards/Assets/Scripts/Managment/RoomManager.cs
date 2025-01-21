@@ -90,9 +90,9 @@ public class RoomManager : MonoBehaviourPunCallbacks
             PhotonNetwork.LoadLevel("Poker");
         }
 
-        else
+        else if(GameModeManager.Instance.selectedGameType == GameModeManager.GameType.Makao)
         {
-            Debug.Log("This Game Type doesn't exist!");
+            PhotonNetwork.LoadLevel("Makao");
         }
     }
 }

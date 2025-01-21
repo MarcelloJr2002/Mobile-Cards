@@ -32,6 +32,7 @@ public class GameModeManager : MonoBehaviour
     {
         BlackJack,
         Poker,
+        Makao
     }
 
     public GameMode selectedMode;
@@ -67,6 +68,9 @@ public class GameModeManager : MonoBehaviour
                 break;
             case GameType.Poker:
                 gameManager = gameObject.AddComponent<Poker>();
+                break;
+            case GameType.Makao:
+                gameManager = gameObject.AddComponent<Makao>();
                 break;
         }
 
