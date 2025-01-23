@@ -8,6 +8,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using Unity.VisualScripting;
 using static Makao;
+using TMPro;
 
 public class CardDealer : MonoBehaviour
 {
@@ -26,8 +27,21 @@ public class CardDealer : MonoBehaviour
     public Transform tableContainer;
     public Button positionBtn1;
     public Button positionBtn2;
+    private Makao makao;
 
     private GameObject hiddenCardGameObject;
+
+    void Awake()
+    {
+        if(GameModeManager.Instance.selectedGameType == GameModeManager.GameType.Makao)
+        {
+            makao = FindObjectOfType<Makao>();
+            if (makao == null)
+            {
+                Debug.LogError("Makao instance not found in scene!");
+            }
+        }
+    }
 
 
     public IEnumerator DealCards(Player player, int id, bool showCard)
@@ -36,6 +50,8 @@ public class CardDealer : MonoBehaviour
 
         GameObject card = Instantiate(cardPrefab, dealerPosition.position, Quaternion.identity, targetContainer);
         player.cardsObjects.Add(card);
+
+        card.GetComponent<RectTransform>().sizeDelta = new Vector2(80, 80);
 
         Image cardImage = card.GetComponent<Image>();
         if (cardImage == null)
@@ -76,17 +92,23 @@ public class CardDealer : MonoBehaviour
             {
                 AddCardClickHandler(card, newCard);
             }
-            cardIndex *= 3;
+
+            if (player.playerCards.Count > 6)
+            {
+                cardIndex = 6;
+            }
+
+            cardIndex *= 2;
             
             if(player.position == positions[1].transform.position)
             {
                 shift = -1;
-                basePosition = player.position + new Vector3(shift * 320, 0, 0);
+                basePosition = player.position + new Vector3(shift * 290, 0, 0);
             }
 
-            else if(player.position == positions[0].transform.position)
+            if(player.position == positions[0].transform.position)
             {
-                basePosition = player.position + new Vector3(-500, 0, 0);
+                basePosition = player.position + new Vector3(-600, 0, 0);
             }
 
         }
@@ -101,13 +123,53 @@ public class CardDealer : MonoBehaviour
             cardImage.sprite = cardsModels.getSpriteId(id);
         }
 
-        if (player.playerCards.Count > 6)
-        {
-            card.SetActive(false);
-        }
-
         Debug.Log("Animacja zakończona!");
     }
+
+    private void AddCardToDropdown(Card card, GameObject cardObject)
+    {
+        Dropdown dropdown = makao.extraCardsDropdown; // Legacy Dropdown
+        makao.extraCards.Add(card);
+
+        // Tworzymy opis karty
+        string cardLabel = card.cardType == Card.CardType.Numerical
+            ? $"{card.value} {card.cardColor}"
+            : $"{card.cardType} {card.cardColor}";
+
+        // Dodajemy opcję do dropdowna
+        dropdown.options.Add(new Dropdown.OptionData(cardLabel));
+
+        // Upewniamy się, że dropdown jest widoczny
+        dropdown.gameObject.SetActive(true);
+
+        // Dodajemy listener do obsługi wybrania opcji
+        dropdown.onValueChanged.AddListener(index =>
+        {
+            if (index > 0) // Pierwsza opcja może być domyślna (np. brak wyboru)
+            {
+                Card selectedCard = makao.extraCards[index - 1]; // Dopasowanie karty na podstawie indeksu
+                Debug.Log($"Selected card from dropdown: {selectedCard.cardType} {selectedCard.cardColor}");
+
+                // Symulujemy kliknięcie na kartę
+                //GameObject dummyCardObject = new GameObject("DummyCardObject");
+                //CardDisplay dummyCardDisplay = dummyCardObject.AddComponent<CardDisplay>();
+                //dummyCardDisplay.SetCard(selectedCard);
+                //dummyCardObject.transform.position = dropdown.transform.position + new Vector3(-400, 0, 0);
+
+                cardObject.transform.position = dropdown.transform.position + new Vector3(-400, 0, 0);
+                makao.OnCardClicked(cardObject);
+                cardObject.SetActive(true);
+                // Usuwamy opcję z dropdowna po zagraniu karty
+                /*dropdown.options.RemoveAt(index);
+                dropdown.value = 0; // Resetujemy dropdown do domyślnej opcji
+                dropdown.RefreshShownValue();*/
+            }
+        });
+    }
+
+
+
+
 
     public void RenderHiddenCard(int id, GameObject hiddenCard)
     {
@@ -179,6 +241,10 @@ public class CardDealer : MonoBehaviour
     {
         cards.Add(selectedCard);
         selectedCard.transform.SetParent(tableContainer);
+        if(!selectedCard.activeSelf)
+        {
+            selectedCard.SetActive(true);
+        }
 
         Vector3 targetPosition = position + new Vector3(180, 0, 0);
         yield return selectedCard.transform.DOMove(targetPosition, 1f).SetEase(Ease.OutCubic).WaitForCompletion();
@@ -213,7 +279,7 @@ public class CardDealer : MonoBehaviour
         clickHandler.Initialize(makaoGame);
     }
 
-    public void RearrangeCards(Player player, Transform parentTransform, float cardSpacing = 60f)
+    public void RearrangeCards(Player player, Transform parentTransform, int maxVisibleCards, int scrollOffset, float cardSpacing = 40f)
     {
         if (player == null || player.cardsObjects == null || player.cardsObjects.Count == 0)
         {
@@ -221,21 +287,55 @@ public class CardDealer : MonoBehaviour
             return;
         }
 
-        // Obliczanie punktu początkowego, aby karty były wyśrodkowane
-        float totalWidth = (player.cardsObjects.Count - 1) * cardSpacing;
-        float startX = -totalWidth / 2f;
-
-        // Iteracja przez karty gracza
+        // Ukrywanie wszystkich kart poza zakresem widocznych
         for (int i = 0; i < player.cardsObjects.Count; i++)
         {
             GameObject cardObject = player.cardsObjects[i];
+            cardObject.SetActive(i >= scrollOffset && i < scrollOffset + maxVisibleCards);
+        }
+
+        // Obliczanie szerokości układu kart widocznych
+        int visibleCardCount = Mathf.Min(maxVisibleCards, player.cardsObjects.Count - scrollOffset);
+        float totalWidth = (visibleCardCount - 1) * cardSpacing;
+        float startX = -totalWidth / 2f;
+
+        // Iteracja przez karty gracza w widocznym zakresie
+        for (int i = 0; i < visibleCardCount; i++)
+        {
+            int actualIndex = i + scrollOffset;
+            Debug.Log("Actual index: " + actualIndex);
+            if(actualIndex >= player.cardsObjects.Count)
+            {
+                actualIndex -= 1;
+            }
+
+            if(actualIndex < 0)
+            {
+                actualIndex = 0;
+            }
+            GameObject cardObject = player.cardsObjects[actualIndex];
+
+            // Ustawienie rodzica, jeśli nie jest ustawiony
+            if (cardObject.transform.parent != parentTransform)
+            {
+                cardObject.transform.SetParent(parentTransform, false);
+            }
+
+            // Obliczenie nowej pozycji
             Vector3 targetPosition = new Vector3(startX + i * cardSpacing, 0, 0);
 
-            // Przesuwanie kart do nowych pozycji
-            cardObject.transform.SetParent(parentTransform); // Ustawienie rodzica dla transformacji
+            // Przesunięcie karty do odpowiedniej pozycji
             cardObject.transform.DOLocalMove(targetPosition, 0.5f).SetEase(Ease.OutCubic);
+
+            // Zresetowanie skali karty (na wypadek, gdyby była zmieniona)
+            cardObject.transform.localScale = Vector3.one;
         }
+
+        Debug.Log($"Rearranged {visibleCardCount} visible cards for player {player.name}.");
     }
+
+
+
 
 
 

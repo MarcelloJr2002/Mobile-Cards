@@ -9,6 +9,9 @@ using UnityEngine.UI;
 using DG.Tweening;
 using static Makao;
 using static Card;
+using Photon.Realtime;
+using TMPro;
+using Unity.VisualScripting;
 
 public class Makao : BaseGameManager
 {
@@ -50,23 +53,35 @@ public class Makao : BaseGameManager
     public Transform canvasTransform;
     private Card requestedCard;
     private List<Card> selectedRequestCard = new List<Card>();
-    private string requestedColor;
+    public string requestedColor = "";
+    public int requestedValue = 0;
     private bool canHandleRequest = true;
     private int demandRequest = 0;
     private int colorRequest = 0;
     private bool ifRequested = false;
+    private bool firstCard;
+    private int scrollOffset = 0;
+    private bool listenerSet = false;
 
     public Dropdown extraCardsDropdown;
     public GameObject cardPrefab;
     public GameObject selectedCardHighlightPrefab;
-    public GameObject cardHighlightPrefab;
+    public PanelManager panelManager;
+    public GameObject panel;
+    public Text[] cardsCountText;
+    public Button LeftArrowBtn;
+    public Button RightArrowBtn;
+    public Button LeftArrowBtn2;
+    public Button RightArrowBtn2;
 
     private List<GameObject> displayedCards = new List<GameObject>();
     private List<Card> selectedCards = new List<Card>();
     private List<GameObject> selectedCardsObjects = new List<GameObject>();
     private Dictionary<GameObject, GameObject> cardHighlights = new Dictionary<GameObject, GameObject>();
     private Dictionary<GameObject, GameObject> requestHighlights = new Dictionary<GameObject, GameObject>();
-    private List<Card> extraCards = new List<Card>();
+    private Dictionary<Card, GameObject> dropdownHighlights = new Dictionary<Card, GameObject>();
+
+    public List<Card> extraCards = new List<Card>();
     public CardClickHandler clickHandler;
     private Request request;
 
@@ -83,6 +98,18 @@ public class Makao : BaseGameManager
     private void Start()
     {
         photonView = GetComponent<PhotonView>();
+    }
+
+    public void SetArrowsListener(Player player)
+    {
+        Transform parentTransform = (player.position == positionButtons[0].transform.position) ? cardsContainer1 : cardsContainer2;
+
+        LeftArrowBtn.onClick.AddListener(() => OnLeftArrowClick(player, parentTransform));
+        RightArrowBtn.onClick.AddListener(() => OnRightArrowClick(player, parentTransform));
+
+        LeftArrowBtn2.onClick.AddListener(() => OnLeftArrowClick(player, parentTransform));
+        RightArrowBtn2.onClick.AddListener(() => OnRightArrowClick(player, parentTransform));
+        listenerSet = true;
     }
 
     [PunRPC]
@@ -162,28 +189,52 @@ public class Makao : BaseGameManager
             });
     }
 
+    public void UpdateCardsCount(string id, float x)
+    {
+        for(int i=0; i<cardsCountText.Length; i++)
+        {
+            if (cardsCountText[i].transform.position.x == x)
+            {
+                cardsCountText[i].text = id + " cards: " + playersList[id].playerCards.Count;
+                Debug.Log("Cards count: " + cardsCountText[i].text);
+            }
+        }
+    }
+
     [PunRPC]
     public void StartGameRPC()
     {
         currentPlayerIndex = 0;
         playerId = playersList.Keys.ElementAt(currentPlayerIndex);
+        requestedValue = 0;
+        requestedColor = "";
     }
 
     public override void GameStart()
     {
         base.GameStart();
-        if(playersList.Count >= 1)
+        if(playersList.Count > 1)
         {
             masterButton.SetActive(false);
+
+            if (!listenerSet)
+            {
+                Debug.Log("Add listener");
+                foreach (var player in playersList.Values)
+                {
+                    SetArrowsListener(player);
+                }
+            }
             photonView.RPC("StartGameRPC", RpcTarget.AllBuffered);
             DealInitialCards();
 
             if (PhotonNetwork.IsMasterClient)
             {
                 ConfirmButton.SetActive(true);
-                extraCardsDropdown.gameObject.SetActive(true);
                 drawCardButton.SetActive(true);
             }
+
+            Debug.Log("Arrow null: " + LeftArrowBtn == null);
         }
 
         else
@@ -209,18 +260,48 @@ public class Makao : BaseGameManager
         bool isLocalPlayer = (pId == Globals.localPlayerId);
         StartCoroutine(cardDealer.DealCards(playersList[pId], cardId, isLocalPlayer));
 
-        if (playersList[playerId].position == positionButtons[0].transform.position)
-        {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer1);
-        }
+        Debug.Log($"Player {pId} hand size: {playersList[pId].playerCards.Count}");
 
+        Player currentPlayer = playersList[pId];
+        if (playersList[pId].playerCards.Count > 6)
+        {
+            // Ustaw scrollOffset tak, aby ostatnie karty były widoczne
+            Debug.Log("Cards count: " + playersList[pId].playerCards.Count);
+            Debug.Log("Cards - 6: " + (playersList[pId].playerCards.Count - 6));
+            scrollOffset = playersList[pId].playerCards.Count - 6;
+            Debug.Log("Scroll offset: " + scrollOffset);
+        }
         else
         {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer2);
+            // Jeśli karty mieszczą się w widocznym obszarze, resetujemy scrollOffset
+            scrollOffset = 0;
         }
 
-        Debug.Log($"Player {pId} hand size: {playersList[pId].playerCards.Count}");
+        // Wywołanie RearrangeCardsWithScrolling
+        Transform parentTransform = (playersList[playerId].position == positionButtons[0].transform.position) ? cardsContainer1 : cardsContainer2;
+        cardDealer.RearrangeCards(currentPlayer, parentTransform, 6, scrollOffset);
+        /*
+        if (pId == Globals.localPlayerId)
+        {
+            LeftArrowBtn.gameObject.SetActive(playersList[pId].playerCards.Count > maxVisibleCards);
+            RightArrowBtn.gameObject.SetActive(playersList[pId].playerCards.Count > maxVisibleCards);
+        }*/
+
+        if(playersList[Globals.localPlayerId].position == positionButtons[0].transform.position && pId == Globals.localPlayerId)
+        {
+            LeftArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            RightArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+        }
+
+        if(playersList[Globals.localPlayerId].position == positionButtons[1].transform.position && pId == Globals.localPlayerId)
+        {
+            LeftArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            RightArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+        }
+
+        //Debug.Log($"Player {pId} hand size: {playersList[pId].playerCards.Count}");
         Debug.Log($"Player {pId} object count: {playersList[pId].cardsObjects.Count}");
+        UpdateCardsCount(pId, playersList[pId].position.x);
     }
 
 
@@ -241,7 +322,8 @@ public class Makao : BaseGameManager
 
             Card card = deck.DrawCard();
             tableCards.Add(card);
-
+            currentCardOnTable = card;
+            requestedCard = card;
             Debug.Log("Flop card: " + card.value + " " + card.cardType + " " + card.cardColor);
             Debug.Log("Flop card: " + card.id);
 
@@ -257,6 +339,7 @@ public class Makao : BaseGameManager
         currentCardOnTable = card;
         requestedCard = card;
         currentSuit = card.cardColor.ToString();
+        firstCard = true;
 
         Debug.Log("Flop card rpc: " + card.value + " " + card.cardType + " " + card.cardColor);
 
@@ -268,33 +351,78 @@ public class Makao : BaseGameManager
     [PunRPC]
     public void MoveCardFromHand(int cardId)
     {
+        if(!PhotonNetwork.IsMasterClient)
+        {
+            ShowInfo("Move");
+        }
+
         Card card = rpcDeck.GetCardById(cardId);
         tableCards.Add(card);
         currentCardOnTable = card;
         requestedCard = card;
         currentSuit = card.cardColor.ToString();
         playersList[playerId].playerCards.Remove(card);
+        UpdateCardsCount(playerId, playersList[playerId].position.x);
 
-        Debug.Log("Flop card rpc: " + card.value + " " + card.cardType + " " + card.cardColor);
-
-        Debug.Log("Flop card rpc: " + card.id);
-
-        foreach(var cardObject in selectedCardsObjects)
+        if (firstCard)
         {
+            firstCard = false;
+        }
+
+        Debug.Log("card rpc: " + card.value + " " + card.cardType + " " + card.cardColor);
+        Debug.Log("card rpc: " + card.id);
+
+        foreach (var cardObject in selectedCardsObjects)
+        {
+            if (!cardObject.activeSelf)
+            {
+                cardObject.SetActive(true);
+            }
+
             StartCoroutine(cardDealer.MakaoDealer(cardObject, tablePosition.position, cardsOnTable));
             playersList[playerId].cardsObjects.Remove(cardObject);
         }
 
-        if (playersList[playerId].position == positionButtons[0].transform.position)
+        // Wywołanie RearrangeCardsWithScrolling
+        Transform parentTransform = (playersList[playerId].position == positionButtons[0].transform.position) ? cardsContainer1 : cardsContainer2;
+
+        // Przesuń widok o jedną kartę (przykładowo, jeśli jest to ruch ręczny)
+        scrollOffset -= 1; // lub inna logika, zależnie od liczby zagranych kart
+        cardDealer.RearrangeCards(playersList[playerId], parentTransform, 6 , scrollOffset);
+
+        if (playersList[Globals.localPlayerId].position == positionButtons[0].transform.position && playerId == Globals.localPlayerId)
         {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer1);
+            LeftArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            RightArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
         }
 
-        else
+        if (playersList[Globals.localPlayerId].position == positionButtons[1].transform.position && playerId == Globals.localPlayerId)
         {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer2);
+            LeftArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            RightArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
         }
     }
+
+
+    public void OnLeftArrowClick(Player player, Transform parentTransform)
+    {
+        //Debug.Log("Scrolloffset: " + scrollOffset);
+        if (scrollOffset > 0)
+        {
+            scrollOffset--;
+            cardDealer.RearrangeCards(player, parentTransform, 6, scrollOffset);
+        }
+    }
+
+    public void OnRightArrowClick(Player player, Transform parentTransform)
+    {
+        if (scrollOffset + 6 < player.cardsObjects.Count)
+        {
+            scrollOffset++;
+            cardDealer.RearrangeCards(player, parentTransform, 6, scrollOffset);
+        }
+    }
+
 
     [PunRPC]
     public void SetColor(string color)
@@ -303,15 +431,9 @@ public class Makao : BaseGameManager
     }
 
     [PunRPC]
-    public void SetRequestedCardRPC(int id)
+    public void SetValue(int value)
     {
-        Card card = rpcDeck.GetCardById(id);
-        SetRequestedCard(card);
-    }
-
-    public void SetRequestedCard(Card card)
-    {
-        requestedCard = card;
+        requestedValue = value;
     }
 
 
@@ -320,231 +442,206 @@ public class Makao : BaseGameManager
         playerId = playersList.Keys.ElementAt(currentPlayerIndex);
         Debug.Log($"OnCardClicked called with object: {cardObject.name}");
 
+        if(panel.activeSelf)
+        {
+            panel.SetActive(false);
+        }
+
         if (playerId == Globals.localPlayerId)
         {
             Card card = cardObject.GetComponent<CardDisplay>().Card;
 
-            SetRequest(card);
+            //SetRequest(card);
+            photonView.RPC("SetRequestRPC", RpcTarget.AllBuffered, card.id);
 
-            if(request == Request.Demand && ifRequested)
+            if(request == Request.Demand && IsCardPlayable(card))
             {
-                if(card.value >= 6 && card.value <=10)
+                ifRequested = true;
+                List<int> cardsValues = playersList[playerId].playerCards
+                    .Where(card => card.value >= 6 && card.value <= 10) 
+                    .Select(card => card.value)                        
+                    .Distinct()                                        
+                    .ToList();
+
+                foreach (var value in cardsValues)
                 {
-                    if (requestHighlights.ContainsKey(cardObject))
-                    {
-                        Destroy(requestHighlights[cardObject]);
-                        requestHighlights.Remove(cardObject);
-                        selectedRequestCard.Remove(card);
-                        demandRequest = 0;
-                        ifRequested = true;
-                        Debug.Log("Card deselected.");
-                    }
-
-                    if (selectedRequestCard.Count == 0)
-                    {
-                        requestedCard = card;
-                        photonView.RPC("SetRequestedCard", RpcTarget.AllBuffered, card.id);
-                        selectedRequestCard.Add(card);
-                        requestedColor = card.cardColor.ToString();
-                        photonView.RPC("SetColor", RpcTarget.AllBuffered, card.cardColor.ToString());
-                        GameObject highlight = Instantiate(cardHighlightPrefab, canvasTransform);
-
-                        highlight.transform.position = cardObject.transform.position + new Vector3(0, 200, 0);
-                        highlight.SetActive(true);
-                        requestHighlights[cardObject] = highlight;
-                        demandRequest = 1;
-                        //ifRequested = false;
-                        ShowInfo("You chose: " + requestedCard.value + " of " + requestedColor);
-                    }
-
-                    else
-                    {
-                        ShowInfo("You can choose only one card!");
-                    }
+                    Debug.Log($"Unique card value: {value}");
                 }
 
-                else
-                {
-                    ShowInfo("You can choose only cards from 6 to 10!");
-                }
+                PlayableCardAction(card, cardObject);
+                panelManager.CreateTogglesForValues(cardsValues, requestedValue);
+                Debug.Log("Makao requested value: " + requestedValue);
+                return;
             }
 
-            if(request == Request.ChangeColor && ifRequested)
+            if(request == Request.ChangeColor && IsCardPlayable(card))
             {
-                if (requestHighlights.ContainsKey(cardObject))
+                ifRequested = true;
+                List<Card.CardColor> cardsColors = playersList[playerId].playerCards
+                    .Select(card => card.cardColor)  
+                    .Distinct()                      
+                    .ToList();
+
+                foreach (var color in cardsColors)
                 {
-                    Destroy(requestHighlights[cardObject]);
-                    requestHighlights.Remove(cardObject);
-                    selectedRequestCard.Remove(card);
-                    colorRequest = 0;
-                    ifRequested = true;
-                    Debug.Log("Card deselected.");
+                    Debug.Log($"Unique card color: {color}");
                 }
 
-                if (selectedRequestCard.Count == 0)
-                {
-                    requestedCard = card;
-                    photonView.RPC("SetRequestedCard", RpcTarget.AllBuffered, card.id);
-                    selectedRequestCard.Add(card);
-                    requestedColor = card.cardColor.ToString();
-                    photonView.RPC("SetColor", RpcTarget.AllBuffered, card.cardColor.ToString());
-                    GameObject highlight = Instantiate(cardHighlightPrefab, canvasTransform);
-
-                    highlight.transform.position = cardObject.transform.position + new Vector3(0, 200, 0);
-                    highlight.SetActive(true);
-                    requestHighlights[cardObject] = highlight;
-                    colorRequest = 1;
-                    //ifRequested = false;
-                    ShowInfo("You chose: " + requestedCard.value + " of " + requestedColor);
-                }
-
-                else
-                {
-                    ShowInfo("You can choose only one card!");
-                }
+                PlayableCardAction(card, cardObject);
+                panelManager.CreateTogglesForColors(cardsColors, requestedColor);
+                Debug.Log("Makao requested color: " + requestedColor);
             }
 
             else
             {
-                Debug.Log("Card value: " + card.value + " CardColor: " + card.cardColor);
-                if (cardHighlights.ContainsKey(cardObject))
-                {
-                    Destroy(cardHighlights[cardObject]);
-                    cardHighlights.Remove(cardObject);
-                    selectedCards.Remove(card);
-                    Debug.Log(selectedCards.Count);
-                    Debug.Log("Card deselected.");
-                }
-
-                else if (IsCardPlayable(card))
-                {
-                    Debug.Log("Is playable!");
-
-                    GameObject highlight = Instantiate(selectedCardHighlightPrefab, canvasTransform);
-
-                    highlight.transform.position = cardObject.transform.position + new Vector3(0, 200, 0);
-                    highlight.SetActive(true);
-
-                    if (card.cardType == CardType.Jack || card.cardType == CardType.Ace)
-                    {
-                        ifRequested = true;
-                    }
-
-                    // Zapisanie podświetlenia w słowniku
-                    cardHighlights[cardObject] = highlight;
-
-                    // Dodanie karty do listy zaznaczonych
-                    selectedCards.Add(card);
-                    selectedCardsObjects.Add(cardObject);
-                    Debug.Log("Card selected: " + card.value + card.cardColor);
-                }
+                PlayableCardAction(card, cardObject);
             }
 
             
         }
     }
 
+    public void PlayableCardAction(Card card, GameObject cardObject)
+    {
+        Debug.Log("Card value: " + card.value + " CardColor: " + card.cardColor);
+        if (cardHighlights.ContainsKey(cardObject))
+        {
+            Destroy(cardHighlights[cardObject]);
+            cardHighlights.Remove(cardObject);
+            selectedCards.Remove(card);
+            selectedCardsObjects.Remove(cardObject);
+            ifRequested = false;
+            if(panel.activeSelf)
+            {
+                panel.SetActive(false);
+            }
+            Debug.Log(selectedCards.Count);
+            Debug.Log("Card deselected.");
+        }
+
+        else if (IsCardPlayable(card))
+        {
+            Debug.Log("Is playable!");
+
+            GameObject highlight = Instantiate(selectedCardHighlightPrefab, canvasTransform);
+
+            highlight.transform.position = cardObject.transform.position + new Vector3(0, 200, 0);
+            highlight.SetActive(true);
+
+            // Zapisanie podświetlenia w słowniku
+            cardHighlights[cardObject] = highlight;
+
+            // Dodanie karty do listy zaznaczonych
+            selectedCards.Add(card);
+            selectedCardsObjects.Add(cardObject);
+            Debug.Log("Card selected: " + card.value + card.cardColor);
+        }
+
+    }
+
     public void TakeCard()
     {
+        ShowInfo("Take card");
         if(PhotonNetwork.IsMasterClient)
         {
             playerId = playersList.Keys.ElementAt(currentPlayerIndex);
+
+            
             Card drawnCard = deck.DrawCard();
 
             photonView.RPC("DealCardToPlayer", RpcTarget.AllBuffered, playerId, drawnCard.id);
-
-            if (playerId == Globals.localPlayerId)
-            {
-                //UpdatePlayerCardsUI(playersList[playerId]);
-            }
         }
+
         drawCardButton.SetActive(false);
+        ConfirmButton.SetActive(false);
+        NextTurn();
     }
 
     public void ConfirmSelectedCards()
     {
         Debug.Log("IfRequested: " + ifRequested);
         Debug.Log("DemandRequest: " + demandRequest + " ColorRequest: " + colorRequest);
+
         if (selectedCards.Count == 0)
         {
             Debug.Log("No cards selected.");
             ShowInfo("No cards selected!");
         }
-
         else
         {
-            if(ifRequested)
+            if (ifRequested)
             {
-                ShowInfo("Choose card!");
-            }
+                Debug.Log("IfRequested debug value: " + requestedValue);
+                panel.SetActive(false);
 
-            if(demandRequest == 1)
-            {
+                if (requestedValue == 0 || requestedColor == "")
+                {
+                    Debug.Log("Default request");
+                    requestedCard = selectedCards.First();
+                    //photonView.RPC("SetRequestedValueRPC", RpcTarget.AllBuffered, requestedCard.value);
+                    //photonView.RPC("SetColor", RpcTarget.AllBuffered, requestedCard.cardColor.ToString());
+                }
+                demandRequest = 0;
+                colorRequest = 0;
                 ifRequested = false;
             }
 
-            if(colorRequest == 1)
+            for(int i=0; i<selectedCards.Count; i++)
             {
-                ifRequested = false;
+                photonView.RPC("MoveCardFromHand", RpcTarget.AllBuffered, selectedCards[i].id);
+                Debug.Log($"Card {selectedCards[i].cardType} of {selectedCards[i].cardColor} added to the table.");
             }
-            
 
+            Player currentPlayer = playersList[Globals.localPlayerId];
+
+            // Usuwanie kart z ręki gracza oraz z dropdowna
+            foreach (Card card in selectedCards)
+            {
+                currentPlayer.playerCards.Remove(card);
+
+                if (extraCards.Contains(card))
+                {
+                    // Usuń kartę z listy dodatkowych kart
+                    extraCards.Remove(card);
+
+                    // Usuń odpowiadającą opcję z dropdowna
+                    int dropdownIndex = extraCardsDropdown.options.FindIndex(option =>
+                        option.text == $"{card.cardType} {card.cardColor}" ||
+                        option.text == $"{card.value} {card.cardColor}");
+
+                    if (dropdownIndex != -1)
+                    {
+                        extraCardsDropdown.options.RemoveAt(dropdownIndex);
+                    }
+                }
+            }
+
+            // Oczyszczenie zaznaczeń
+            selectedCards.Clear();
+            foreach (var highlight in cardHighlights.Values)
+            {
+                Destroy(highlight);
+            }
+            cardHighlights.Clear();
+
+            // Odświeżenie dropdowna
+            extraCardsDropdown.RefreshShownValue();
+            ConfirmButton.SetActive(false);
+            drawCardButton.SetActive(false);
+
+            if (currentPlayer.playerCards.Count == 0)
+            {
+                StartCoroutine(ShowAndHideSign(winnerSign, currentPlayer.position));
+                EndGame();
+            }
             else
             {
-                if (demandRequest == 1 || colorRequest == 1)
-                {
-                    selectedRequestCard.Clear();
-
-                    foreach (var highlight in requestHighlights.Values)
-                    {
-                        Destroy(highlight);
-                    }
-                    requestHighlights.Clear();
-                    demandRequest = 0;
-                    colorRequest = 0;
-                }
-
-                //extraCardsDropdown.gameObject.SetActive(false);
-                ConfirmButton.SetActive(false);
-                foreach (Card card in selectedCards)
-                {
-                    photonView.RPC("MoveCardFromHand", RpcTarget.AllBuffered, card.id);
-                    Debug.Log($"Card {card.cardType} of {card.cardColor} added to the table.");
-                }
-
-                Player currentPlayer = playersList[Globals.localPlayerId];
-                foreach (Card card in selectedCards)
-                {
-                    currentPlayer.playerCards.Remove(card);
-
-                    if (extraCards.Contains(card))
-                    {
-                        extraCards.Remove(card);
-                    }
-                }
-
-                selectedCards.Clear();
-                foreach (var highlight in cardHighlights.Values)
-                {
-                    Destroy(highlight);
-                }
-                cardHighlights.Clear();
-                selectedCards.Clear();
-
-                if (currentPlayer.playerCards.Count == 0)
-                {
-                    EndGame();
-                }
-
-                else
-                {
-                    //extraCardsDropdown.ClearOptions();
-                    //UpdatePlayerCardsUI(playersList[Globals.localPlayerId]);
-                    NextTurn();
-                }
+                NextTurn();
             }
         }
     }
+
+
 
 
     [PunRPC]
@@ -569,70 +666,75 @@ public class Makao : BaseGameManager
         HandleRequest(playerId);
     }
 
-    private void UpdatePlayerCardsUI(Player player)
+    [PunRPC]
+    public void EndGameRPC()
     {
-        // Usuń stare karty z widoku
-        foreach (var cardObject in displayedCards)
-        {
-            Destroy(cardObject);
-        }
-        displayedCards.Clear();
-
-        // Zresetuj menu rozwijane
-        extraCardsDropdown.ClearOptions();
-        extraCards.Clear();
-
-        Transform container = (player.position == positionButtons[0].transform.position)
-    ? cardsContainer1
-    : cardsContainer2;
-
-        for (int i = 0; i < Mathf.Min(player.playerCards.Count, maxVisibleCards); i++)
-        {
-            GameObject cardObject = Instantiate(cardPrefab, container);
-            cardObject.GetComponent<CardDisplay>().SetCard(player.playerCards[i]);
-            displayedCards.Add(cardObject);
-            player.cardsObjects.Add(cardObject);
-        }
-
-
-        // Dodaj nadmiarowe karty do dropdown (tylko tekst, nie prefab!)
-        for (int i = maxVisibleCards; i < player.playerCards.Count; i++)
-        {
-            Card extraCard = player.playerCards[i];
-            extraCards.Add(extraCard);
-
-            // Upewnij się, że dodajesz tylko opcje do dropdown, a nie tworzysz obiektów
-            extraCardsDropdown.options.Add(new Dropdown.OptionData($"{extraCard.cardType} {extraCard.cardColor}"));
-        }
-
-
-        // Pokaż menu dropdown, jeśli są dodatkowe karty
-        //extraCardsDropdown.gameObject.SetActive(extraCards.Count > 0);
+        EndGame();
     }
-
-
-    public void OnDropdownCardSelected(int index)
-    {
-        if (index < 0 || index >= extraCards.Count)
-        {
-            Debug.LogError("Invalid card index selected in dropdown.");
-            return;
-        }
-
-        Card selectedCard = extraCards[index];
-        Debug.Log($"Selected card from dropdown: {selectedCard.cardType} {selectedCard.cardColor}");
-
-        // Dodaj wybraną kartę do listy zaznaczonych
-        selectedCards.Add(selectedCard);
-
-        // Opcjonalne podświetlenie karty w dropdown (do zaimplementowania, jeśli potrzebne)
-    }
-
-
 
     public override void EndGame()
     {
         base.EndGame();
+
+        foreach(var player in playersList.Values)
+        {
+            player.playerCards.Clear();
+
+            for(int i=0; i<player.cardsObjects.Count; i++)
+            {
+                StartCoroutine(cardDealer.DestroyCards(playersList[playerId].cardsObjects[i]));
+            }
+            player.cardsObjects.Clear();
+        }
+
+        foreach(var card in cardsOnTable)
+        {
+            StartCoroutine(cardDealer.DestroyCards(card));
+        }
+        cardsOnTable.Clear();
+        tableCards.Clear();
+        deck = rpcDeck;
+
+        if(PhotonNetwork.IsMasterClient)
+        {
+            masterButton.SetActive(true);
+        }
+    }
+
+    private IEnumerator ShowAndHideSign(GameObject sign, Vector3 position)
+    {
+        yield return new WaitForSeconds(1);
+
+        sign.transform.position = position;
+        sign.transform.SetAsLastSibling();
+        sign.SetActive(true);
+
+
+        sign.GetComponent<CanvasGroup>().alpha = 0;
+
+
+        sign.transform.DOScale(Vector3.one, 0.5f).SetEase(Ease.OutBack);
+        sign.GetComponent<CanvasGroup>().DOFade(1, 0.5f);
+
+
+        DOVirtual.DelayedCall(3.0f, () =>
+        {
+            sign.transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InBack);
+            sign.GetComponent<CanvasGroup>().DOFade(0, 0.5f).OnComplete(() =>
+            {
+                sign.SetActive(false);
+            });
+        });
+
+        yield return new WaitForSeconds(2);
+    }
+
+    [PunRPC]
+    public void SetRequestRPC(int id)
+    {
+        Card card = rpcDeck.GetCardById(id);
+
+        SetRequest(card);
     }
 
     public void SetRequest(Card card)
@@ -642,10 +744,12 @@ public class Makao : BaseGameManager
             case 2:
                 request = Request.Draw;
                 cardsToDraw += 2;
+                Debug.Log("Cards to draw: " + cardsToDraw);
                 break;
             case 3:
                 request = Request.Draw;
                 cardsToDraw += 3;
+                Debug.Log("Cards to draw: " + cardsToDraw);
                 break;
             case 4:
                 request = Request.Stand;
@@ -658,6 +762,7 @@ public class Makao : BaseGameManager
                 {
                     request = Request.Draw;
                     cardsToDraw += 5;
+                    Debug.Log("Cards to draw: " + cardsToDraw);
                 }
 
                 else
@@ -678,29 +783,32 @@ public class Makao : BaseGameManager
     {
         if(selectedCards.Count > 0)
         {
-            if (card.value == currentCardOnTable.value)
+            if (card.value == selectedCards.First().value)
             {
-                Debug.Log("Selected card count > 0");
+                Debug.Log("Selected card count > 0 && true");
                 return true;
             }
 
             else 
             {
-                Debug.Log("Selected card count > 0");
+                Debug.Log("Selected card count > 0 && false");
+                Debug.Log("Card value: " + card.value);
                 return false; 
             }
         }
 
         else
         {
-            if (card.cardColor.ToString() == currentSuit || card.value == currentCardOnTable.value)
-            {
-                return true;
-            }
-
             // Rozszerzenie reguł dla kart specjalnych
             if (currentCardOnTable != null)
             {
+                
+                if(firstCard && (card.value == currentCardOnTable.value || card.cardColor == currentCardOnTable.cardColor || card.value == 5))
+                {
+                    Debug.Log("First card condition " + firstCard);
+                    return true;
+                }
+                
                 switch (currentCardOnTable.value)
                 {
                     case 2: // Dwójka
@@ -733,7 +841,7 @@ public class Makao : BaseGameManager
 
                     case 11:
                         return card.cardType == Card.CardType.Jack ||
-                        card.value == requestedCard.value;
+                        card.value == requestedValue;
 
                     case 13:
                         if(currentCardOnTable.cardColor == Card.CardColor.Heart || currentCardOnTable.cardColor == Card.CardColor.Spade)
@@ -748,11 +856,27 @@ public class Makao : BaseGameManager
 
                         else
                         {
-                            return card.value == 13 || card.cardColor == currentCardOnTable.cardColor;
+                            return card.value == 13 || card.cardColor == currentCardOnTable.cardColor || card.value == 5;
                         }
 
                     case 14:
-                        return card.cardColor == requestedCard.cardColor;
+                        if(card.cardColor.ToString() == requestedColor || card.cardType == CardType.Ace || card.value == 5)
+                        {
+                            return true;
+                        }
+
+                        else
+                        {
+                            Debug.Log(requestedColor);
+                            return false;
+                        }
+
+                    default:
+                        if (card.cardColor.ToString() == currentSuit || card.value == currentCardOnTable.value || card.value == 5)
+                        {
+                            return true;
+                        }
+                        break;
                 }
             }
         }
@@ -762,89 +886,6 @@ public class Makao : BaseGameManager
 
         // Jeśli żadna z powyższych reguł nie została spełniona
         return false;
-    }
-
-
-    private void HandleSpecialCard(Card card, Player currentPlayer)
-    {
-        switch (card.value)
-        {
-            case 2:
-                Debug.Log("Special card: 2 played! Next player must draw 2 cards.");
-                photonView.RPC("HandleDrawCards", RpcTarget.AllBuffered, 2);
-                break;
-
-            case 3:
-                Debug.Log("Special card: 3 played! Next player must draw 3 cards.");
-                photonView.RPC("HandleDrawCards", RpcTarget.AllBuffered, 3);
-                break;
-
-            case 4:
-                Debug.Log("Special card: 4 played! Next player loses their turn.");
-                photonView.RPC("HandleSkipTurn", RpcTarget.AllBuffered);
-                break;
-
-            default:
-                if (card.cardType == Card.CardType.Jack)
-                {
-                    Debug.Log("Special card: Jack played! Requesting a card.");
-                    photonView.RPC("HandleRequestCard", RpcTarget.AllBuffered, currentPlayer.UserName, card.cardColor.ToString());
-                }
-                else if (card.cardType == Card.CardType.King && (card.cardColor == Card.CardColor.Heart || card.cardColor == Card.CardColor.Spade))
-                {
-                    Debug.Log("Special card: King played! Next player must draw 5 cards.");
-                    photonView.RPC("HandleDrawCards", RpcTarget.AllBuffered, 5);
-                }
-                else if (card.cardType == Card.CardType.Queen && (card.cardColor == Card.CardColor.Heart || card.cardColor == Card.CardColor.Spade))
-                {
-                    Debug.Log("Special card: Queen played! Blocks card draw effects.");
-                    photonView.RPC("HandleBlockDrawCards", RpcTarget.AllBuffered);
-                }
-                else if (card.cardType == Card.CardType.Ace)
-                {
-                    Debug.Log("Special card: Ace played! Changing suit.");
-                    photonView.RPC("HandleChangeSuit", RpcTarget.AllBuffered);
-                }
-                break;
-        }
-    }
-
-
-    [PunRPC]
-    public void HandleDrawCards(int cardsToDraw)
-    {
-        string nextPlayerId = nextId;
-        if (playersList[nextPlayerId].playerCards.Count == 0)
-        {
-            Debug.Log("Next player has no cards left! Skipping draw.");
-            NextTurn();
-            return;
-        }
-
-        Debug.Log($"Next player {nextPlayerId} must draw {cardsToDraw} cards.");
-
-        // Jeśli gracz ma karty, umożliw mu odpowiedź
-        if (CanRespondToSpecialCard(nextPlayerId))
-        {
-            Debug.Log("Player can respond to special card. Waiting for response...");
-            NextTurn();
-        }
-        else
-        {
-            Debug.Log("Player cannot respond. Automatically drawing cards.");
-            //DrawCards(playersList[nextPlayerId], cardsToDraw);
-            for(int i=0; i<cardsToDraw; i++)
-            {
-                TakeCard();
-            }
-            NextTurn();
-        }
-    }
-
-    [PunRPC]
-    public void HandleSkipTurn()
-    {
-        NextTurn();
     }
 
     public void HandleRequest(string playerName)
@@ -857,33 +898,30 @@ public class Makao : BaseGameManager
 
         else
         {
-            photonView.RPC("SetCanHandleRequest", RpcTarget.AllBuffered, false);
+            if(PhotonNetwork.IsMasterClient)
+            {
+                photonView.RPC("SetCanHandleRequest", RpcTarget.AllBuffered, false);
+            }
             if (request == Request.Draw)
             {
+                Debug.Log("Cards to draw: " + cardsToDraw);
                 if(PhotonNetwork.IsMasterClient)
                 {
                     for (int i = 0; i < cardsToDraw; i++)
                     {
                         Card drawnCard = deck.DrawCard();
-                        if (IsCardPlayable(drawnCard))
-                        {
-                            ShowInfo("You can play!");
-                            photonView.RPC("SetCanHandleRequest", RpcTarget.AllBuffered, true);
-                            break;
-                        }
-
-                        else
-                        {
-                            photonView.RPC("DealCardToPlayer", RpcTarget.AllBuffered, playerId, drawnCard.id);
-                        }
+                        photonView.RPC("DealCardToPlayer", RpcTarget.AllBuffered, playerId, drawnCard.id);
                     }
                 }
+                photonView.RPC("SetCardsToDraw", RpcTarget.AllBuffered, 0);
+                photonView.RPC("SetFirstCard", RpcTarget.AllBuffered);
             }
 
             if(request == Request.Stand)
             {
                 currentPlayerIndex = (currentPlayerIndex + 1) % playersList.Count;
                 photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, currentPlayerIndex);
+                photonView.RPC("SetFirstCard", RpcTarget.AllBuffered);
             }
 
             if(request == Request.Demand || request == Request.ChangeColor)
@@ -915,46 +953,24 @@ public class Makao : BaseGameManager
     }
 
     [PunRPC]
+    public void SetFirstCard()
+    {
+        firstCard = true;
+    }
+
+    [PunRPC]
     public void SetCanHandleRequest(bool canHandle)
     {
         canHandleRequest = canHandle;
     }
 
     [PunRPC]
-    public void HandleRequestCard(string requesterName, string requestedSuit)
+    public void SetCardsToDraw(int cardsCount)
     {
-        Debug.Log($"Player {requesterName} requests suit {requestedSuit}.");
-        currentSuit = requestedSuit;
-
-        if (CanRespondToSpecialCard(nextId))
-        {
-            Debug.Log("Player can respond to special card. Waiting for response...");
-            NextTurn();
-        }
-        else
-        {
-            Debug.Log("Player cannot respond. Automatically drawing cards.");
-            //DrawCards(playersList[nextPlayerId], cardsToDraw);
-            TakeCard();
-        }
-
-        NextTurn();
+        cardsToDraw = cardsCount;
     }
 
-    [PunRPC]
-    public void HandleChangeSuit()
-    {
-        // Wyświetl UI dla gracza zmieniającego kolor 
-        Debug.Log("Ace played! Prompting for suit change.");
-        //ShowSuitChangeUI(); - do zrobienia jeszcze
-    }
-
-    [PunRPC]
-    public void HandleBlockDrawCards()
-    {
-        Debug.Log("Queen played! Blocking card draw effects.");
-        cardsToDraw = 0;
-    }
+    
 
     private bool CanRespondToSpecialCard(string playerId)
     {

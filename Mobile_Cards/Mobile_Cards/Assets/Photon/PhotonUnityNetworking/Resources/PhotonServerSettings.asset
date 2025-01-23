@@ -89,6 +89,13 @@ MonoBehaviour:
   - SetColor
   - SetRequestedCard
   - SetRequestedCardRPC
+  - UpdateCardsCount
+  - SetCardsToDraw
+  - SetFirsCard
+  - SetFirstCard
+  - SetRequestedValueRPC
+  - SetRequestRPC
+  - SetValue
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

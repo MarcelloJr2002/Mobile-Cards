@@ -265,7 +265,7 @@ public class Poker : BaseGameManager
     {
         if (PhotonOrBluetooth())
         {
-            photonView.RPC("TestMethod", RpcTarget.AllViaServer);
+            photonView.RPC("TestMethod", RpcTarget.AllBuffered);
         }
     }
 
@@ -300,7 +300,7 @@ public class Poker : BaseGameManager
                     Debug.Log(drawnCard.ToString());
 
                     //playersList[playerId].AddCardToHand(drawnCard);
-                    photonView.RPC("DealCardToPlayer", RpcTarget.AllViaServer, playerId, drawnCard.id);
+                    photonView.RPC("DealCardToPlayer", RpcTarget.AllBuffered, playerId, drawnCard.id);
                 }
             }
 
@@ -469,15 +469,15 @@ public class Poker : BaseGameManager
         double playerMoney = playersList[playerId].money;
         double playerBet = playersList[playerId].bet;
         float xPosition = playersList[playerId].position.x;
-        photonView.RPC("DisplayBet", RpcTarget.All, playerBet, xPosition);
+        photonView.RPC("DisplayBet", RpcTarget.AllBuffered, playerBet, xPosition);
         yield return new WaitForSeconds(0.3f);
 
-        photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, xPosition);
+        photonView.RPC("UpdateMoneyText", RpcTarget.AllBuffered, playerMoney, xPosition);
         yield return new WaitForSeconds(0.3f);
 
         if (playersList[playerId].pokerPosition == "BB")
         {
-            photonView.RPC("UpdateTurn", RpcTarget.AllViaServer, gameMoment);
+            photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, gameMoment);
             yield return new WaitForSeconds(0.3f);
         }
 
@@ -485,14 +485,14 @@ public class Poker : BaseGameManager
         {
             if (gameMoment == "PreFlop" && raiseCondition == false)
             {
-                photonView.RPC("UpdatePosition", RpcTarget.AllViaServer);
+                photonView.RPC("UpdatePosition", RpcTarget.AllBuffered);
                 yield return new WaitForSeconds(0.3f);
             }
 
             if (raiseCondition == true)
             {
                 Debug.Log("Called the raise!");
-                photonView.RPC("UpdateTurn", RpcTarget.AllViaServer, gameMoment);
+                photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, gameMoment);
                 yield return new WaitForSeconds(0.3f);
             }
         }
@@ -532,14 +532,14 @@ public class Poker : BaseGameManager
         double playerMoney = playersList[playerId].money;
         double playerBet = playersList[playerId].bet;
         float xPosition = playersList[playerId].position.x;
-        photonView.RPC("DisplayBet", RpcTarget.All, playerBet, xPosition);
+        photonView.RPC("DisplayBet", RpcTarget.AllBuffered, playerBet, xPosition);
         yield return new WaitForSeconds(0.3f);
 
-        photonView.RPC("UpdateMoneyText", RpcTarget.All, playerMoney, xPosition);
+        photonView.RPC("UpdateMoneyText", RpcTarget.AllBuffered, playerMoney, xPosition);
         yield return new WaitForSeconds(0.3f);
 
         //photonView.RPC("UpdateTurn", RpcTarget.AllViaServer, gameMoment);
-        photonView.RPC("UpdatePosition", RpcTarget.AllViaServer);
+        photonView.RPC("UpdatePosition", RpcTarget.AllBuffered);
         yield return new WaitForSeconds(0.3f);
     }
 
@@ -575,7 +575,7 @@ public class Poker : BaseGameManager
     public void Fold()
     {
         HideButtons();
-        photonView.RPC("FoldRPC", RpcTarget.AllViaServer);
+        photonView.RPC("FoldRPC", RpcTarget.AllBuffered);
         //photonView.RPC("UpdateTurn", RpcTarget.AllViaServer, gameMoment);
         //photonView.RPC("UpdatePosition", RpcTarget.AllViaServer);
     }
@@ -594,17 +594,17 @@ public class Poker : BaseGameManager
     public IEnumerator CheckCoroutine()
     {
         HideButtons();
-        photonView.RPC("CheckRPC", RpcTarget.AllViaServer);
+        photonView.RPC("CheckRPC", RpcTarget.AllBuffered);
         yield return new WaitForSeconds(0.3f);
         if (playersList[playerId].pokerPosition == "BB")
         {
-            photonView.RPC("UpdateTurn", RpcTarget.AllViaServer, gameMoment);
+            photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, gameMoment);
             yield return new WaitForSeconds(0.3f);
         }
 
         else
         {
-            photonView.RPC("UpdatePosition", RpcTarget.AllViaServer);
+            photonView.RPC("UpdatePosition", RpcTarget.AllBuffered);
             yield return new WaitForSeconds(0.3f);
         }
         Debug.Log("Check!");
@@ -641,7 +641,7 @@ public class Poker : BaseGameManager
                 Debug.Log("Flop card: " + card.value + " " + card.cardType + " " + card.cardColor);
                 Debug.Log("Flop card: " + card.id);
 
-                photonView.RPC("DealCardsOnTable", RpcTarget.AllViaServer, i, card.id);
+                photonView.RPC("DealCardsOnTable", RpcTarget.AllBuffered, i, card.id);
             }
         }
 
@@ -666,7 +666,7 @@ public class Poker : BaseGameManager
             Card card = deck.DrawCard();
             cardsOnTable.Add(card);
 
-            photonView.RPC("DealCardsOnTable", RpcTarget.AllViaServer, 3, card.id);
+            photonView.RPC("DealCardsOnTable", RpcTarget.AllBuffered, 3, card.id);
         }
 
         currentPlayerIndex = 0;
@@ -688,7 +688,7 @@ public class Poker : BaseGameManager
             Card card = deck.DrawCard();
             cardsOnTable.Add(card);
 
-            photonView.RPC("DealCardsOnTable", RpcTarget.AllViaServer, 4, card.id);
+            photonView.RPC("DealCardsOnTable", RpcTarget.AllBuffered, 4, card.id);
         }
 
         currentPlayerIndex = 0;
@@ -843,7 +843,7 @@ public class Poker : BaseGameManager
         {
             photonView.RPC("RevealCards", RpcTarget.Others, Globals.localPlayerId);
             yield return new WaitForSeconds(0.3f);
-            photonView.RPC("ShowDownRPC", RpcTarget.AllViaServer);
+            photonView.RPC("ShowDownRPC", RpcTarget.AllBuffered);
         }
     }
 

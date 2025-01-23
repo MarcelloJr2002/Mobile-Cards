@@ -59,6 +59,11 @@ public class GoBackButton : MonoBehaviour
         {
             SceneManager.LoadScene("Rules");
         }
+
+        if(sceneName == "MakaoRules")
+        {
+            SceneManager.LoadScene("Rules");
+        }
     }
 
     public void BlackJackRulesScene()
@@ -69,5 +74,10 @@ public class GoBackButton : MonoBehaviour
     public void PokerRulesScene()
     {
         SceneManager.LoadScene("PokerRules");
+    }
+
+    public void MakaoRulesScene()
+    {
+        SceneManager.LoadScene("MakaoRules");
     }
 }

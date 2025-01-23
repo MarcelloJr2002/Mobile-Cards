@@ -388,30 +388,14 @@ public class BlackJackGame : BaseGameManager
         {
             ChipButtons.SetActive(false);
             ConfirmButton.SetActive(false);
-            if (PhotonOrBluetooth())
-            {
-                photonView.RPC("PlayerConfirmedBet", RpcTarget.All);
-            }
-
-            else
-            {
-                playersConfirmed++;
-
-                if (playersConfirmed >= playersList.Count)
-                {
-                    EndBetingTurn();
-                }
-
-                message = $"CONFIRM,{playersConfirmed}";
-                BluetoothForAndroid.WriteMessage(message);
-            }
+            photonView.RPC("PlayerConfirmedBet", RpcTarget.All);
         }
     }
 
     [PunRPC]
     public void PlayerConfirmedBet()
     {
-        playersConfirmed++;
+        playersConfirmed += 1;
 
         if (playersConfirmed >= playersList.Count)
         {
@@ -432,22 +416,7 @@ public class BlackJackGame : BaseGameManager
             }
         }
 
-        else
-        {
-            if (BluetoothManager.Instance.masterClient == Globals.localPlayerId)
-            {
-
-            }
-        }
-
-        //DealInitialCards();
-        //HitStandTurn();
-        /*
-        if (!PhotonOrBluetooth()) 
-        {
-            //message = $"DEALCARDS";
-            //BluetoothForAndroid.WriteMessage(message);
-        }*/
+        HitStandTurn();
     }
 
     [PunRPC]
@@ -598,7 +567,6 @@ public class BlackJackGame : BaseGameManager
     [PunRPC]
     public void PlayerHit(string playerIndex)
     {
-        
         if (PhotonNetwork.LocalPlayer.NickName == playerIndex)
         {
             Debug.Log("Skipping duplicate RPC for local player");
