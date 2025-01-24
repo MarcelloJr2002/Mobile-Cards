@@ -59,7 +59,7 @@ public class PanelManager : MonoBehaviour
                         Debug.Log($"Value {value} selected");
                         requestedValue = value;
                         makao.requestedValue = requestedValue;
-                        makao.photonView.RPC("SetValue", RpcTarget.AllBuffered, requestedValue);
+                        makao.photonView.RPC("SetValue", RpcTarget.All, requestedValue);
                         Debug.Log($"Requested value: {requestedValue}");
                     }
 
@@ -67,7 +67,7 @@ public class PanelManager : MonoBehaviour
                     {
                         requestedValue = 0;
                         makao.requestedValue = requestedValue;
-                        makao.photonView.RPC("SetValue", RpcTarget.AllBuffered, requestedValue);
+                        makao.photonView.RPC("SetValue", RpcTarget.All, requestedValue);
                         Debug.Log("No toggle selected, default value applied");
                     }
                 });

@@ -1,10 +1,11 @@
 ﻿using Photon.Pun;
+using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GoBackButton : MonoBehaviour
+public class GoBackButton : MonoBehaviourPunCallbacks
 {
     string sceneName;
     void Start()
@@ -31,8 +32,6 @@ public class GoBackButton : MonoBehaviour
                 Debug.Log("Already connected. Disconnecting first.");
                 PhotonNetwork.Disconnect();
             }
-
-            SceneManager.LoadScene("ConnectionChoice");
         }
 
         if (sceneName == "BTConnect")
@@ -79,5 +78,11 @@ public class GoBackButton : MonoBehaviour
     public void MakaoRulesScene()
     {
         SceneManager.LoadScene("MakaoRules");
+    }
+
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        base.OnDisconnected(cause);
+        SceneManager.LoadScene("ConnectionChoice");
     }
 }

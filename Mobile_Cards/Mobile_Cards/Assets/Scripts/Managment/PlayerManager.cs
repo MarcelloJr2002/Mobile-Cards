@@ -2,9 +2,11 @@
 using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 public class PlayerManager : MonoBehaviour
 {
@@ -34,6 +36,12 @@ public class PlayerManager : MonoBehaviour
             ShowText(infoText.text);
         }
 
+        if(ContainsPolishCharacters(inputField.text))
+        {
+            infoText.text = "You can't use polish letters!";
+            ShowText(infoText.text);
+        }
+
         else
         {
             Globals.localPlayerId = inputField.text;
@@ -50,5 +58,12 @@ public class PlayerManager : MonoBehaviour
                 SceneManager.LoadScene("BTConnect");
             }
         }
+    }
+
+    public bool ContainsPolishCharacters(string input)
+    {
+        // Wyrażenie regularne sprawdzające polskie znaki
+        string polishCharsPattern = "[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]";
+        return Regex.IsMatch(input, polishCharsPattern);
     }
 }

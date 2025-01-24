@@ -102,6 +102,11 @@ public class BlackJackGame : BaseGameManager
     public void AddPlayer(string playerName, Vector3 position)
     {
         Player newPlayer = new(PhotonNetwork.LocalPlayer);
+
+        if(playersList.ContainsKey(playerName))
+        {
+            playerName += " 1";
+        }
         playersList.Add(playerName, newPlayer);
         playersList[playerName].position = position;
     }

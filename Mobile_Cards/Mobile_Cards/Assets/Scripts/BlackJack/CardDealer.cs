@@ -123,52 +123,10 @@ public class CardDealer : MonoBehaviour
             cardImage.sprite = cardsModels.getSpriteId(id);
         }
 
-        Debug.Log("Animacja zakończona!");
+        //Debug.Log("Animacja zakończona!");
     }
 
-    private void AddCardToDropdown(Card card, GameObject cardObject)
-    {
-        Dropdown dropdown = makao.extraCardsDropdown; // Legacy Dropdown
-        makao.extraCards.Add(card);
-
-        // Tworzymy opis karty
-        string cardLabel = card.cardType == Card.CardType.Numerical
-            ? $"{card.value} {card.cardColor}"
-            : $"{card.cardType} {card.cardColor}";
-
-        // Dodajemy opcję do dropdowna
-        dropdown.options.Add(new Dropdown.OptionData(cardLabel));
-
-        // Upewniamy się, że dropdown jest widoczny
-        dropdown.gameObject.SetActive(true);
-
-        // Dodajemy listener do obsługi wybrania opcji
-        dropdown.onValueChanged.AddListener(index =>
-        {
-            if (index > 0) // Pierwsza opcja może być domyślna (np. brak wyboru)
-            {
-                Card selectedCard = makao.extraCards[index - 1]; // Dopasowanie karty na podstawie indeksu
-                Debug.Log($"Selected card from dropdown: {selectedCard.cardType} {selectedCard.cardColor}");
-
-                // Symulujemy kliknięcie na kartę
-                //GameObject dummyCardObject = new GameObject("DummyCardObject");
-                //CardDisplay dummyCardDisplay = dummyCardObject.AddComponent<CardDisplay>();
-                //dummyCardDisplay.SetCard(selectedCard);
-                //dummyCardObject.transform.position = dropdown.transform.position + new Vector3(-400, 0, 0);
-
-                cardObject.transform.position = dropdown.transform.position + new Vector3(-400, 0, 0);
-                makao.OnCardClicked(cardObject);
-                cardObject.SetActive(true);
-                // Usuwamy opcję z dropdowna po zagraniu karty
-                /*dropdown.options.RemoveAt(index);
-                dropdown.value = 0; // Resetujemy dropdown do domyślnej opcji
-                dropdown.RefreshShownValue();*/
-            }
-        });
-    }
-
-
-
+    
 
 
     public void RenderHiddenCard(int id, GameObject hiddenCard)
@@ -249,7 +207,7 @@ public class CardDealer : MonoBehaviour
         Vector3 targetPosition = position + new Vector3(180, 0, 0);
         yield return selectedCard.transform.DOMove(targetPosition, 1f).SetEase(Ease.OutCubic).WaitForCompletion();
 
-        Debug.Log("Animacja zakończona!");
+        //Debug.Log("Animacja zakończona!");
     }
 
     public void ShowInfo(string info)
@@ -303,13 +261,13 @@ public class CardDealer : MonoBehaviour
         for (int i = 0; i < visibleCardCount; i++)
         {
             int actualIndex = i + scrollOffset;
-            Debug.Log("Actual index: " + actualIndex);
-            if(actualIndex >= player.cardsObjects.Count)
+            //Debug.Log("Actual index: " + actualIndex);
+            if (actualIndex >= player.cardsObjects.Count)
             {
                 actualIndex -= 1;
             }
 
-            if(actualIndex < 0)
+            if (actualIndex < 0)
             {
                 actualIndex = 0;
             }
@@ -331,11 +289,8 @@ public class CardDealer : MonoBehaviour
             cardObject.transform.localScale = Vector3.one;
         }
 
-        Debug.Log($"Rearranged {visibleCardCount} visible cards for player {player.name}.");
+        //Debug.Log($"Rearranged {visibleCardCount} visible cards for player {player.name}.");
     }
-
-
-
 
 
 

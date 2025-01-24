@@ -2,8 +2,10 @@
 using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Text.RegularExpressions;
 
 public class RoomManager : MonoBehaviourPunCallbacks
 {
@@ -42,6 +44,13 @@ public class RoomManager : MonoBehaviourPunCallbacks
             });
     }
 
+    public bool ContainsPolishCharacters(string input)
+    {
+        // Wyrażenie regularne sprawdzające polskie znaki
+        string polishCharsPattern = "[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]";
+        return Regex.IsMatch(input, polishCharsPattern);
+    }
+
     public void CreateRoom()
     {
         if(createInputField.text == "")
@@ -49,6 +58,12 @@ public class RoomManager : MonoBehaviourPunCallbacks
             infoText.text = "Input fiedl cannot be empty!";
             ShowText(infoText.text);
             Debug.Log("Input fiedl cannot be empty!");
+        }
+
+        if (ContainsPolishCharacters(createInputField.text))
+        {
+            infoText.text = "You can't use polish letters!";
+            ShowText(infoText.text);
         }
 
         else
@@ -64,6 +79,12 @@ public class RoomManager : MonoBehaviourPunCallbacks
             infoText.text = "Input fiedl cannot be empty!";
             ShowText(infoText.text);
             Debug.Log("Input fiedl cannot be empty!");
+        }
+
+        if (ContainsPolishCharacters(joinInputField.text))
+        {
+            infoText.text = "You can't use polish letters!";
+            ShowText(infoText.text);
         }
 
         else
