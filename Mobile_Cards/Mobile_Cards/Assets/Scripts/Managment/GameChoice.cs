@@ -11,7 +11,8 @@ public class GameChoice : MonoBehaviour
         if (gameModeManager != null)
         {
             gameModeManager.selectedGameType = GameModeManager.GameType.BlackJack;
-            SceneManager.LoadScene("ConnectionChoice");
+            ChoosePhoton();
+            //SceneManager.LoadScene("ConnectionChoice");
         }
     }
 
@@ -21,7 +22,8 @@ public class GameChoice : MonoBehaviour
         if (gameModeManager != null)
         {
             gameModeManager.selectedGameType = GameModeManager.GameType.Poker;
-            SceneManager.LoadScene("ConnectionChoice");
+            ChoosePhoton();
+            //SceneManager.LoadScene("ConnectionChoice");
         }
     }
 
@@ -31,7 +33,15 @@ public class GameChoice : MonoBehaviour
         if (gameModeManager != null)
         {
             gameModeManager.selectedGameType = GameModeManager.GameType.Makao;
-            SceneManager.LoadScene("ConnectionChoice");
+            ChoosePhoton();
+            //SceneManager.LoadScene("ConnectionChoice");
         }
+    }
+
+    public void ChoosePhoton()
+    {
+        SceneManager.LoadScene("LoadingScene");
+        GameModeManager.Instance.selectedMode = GameModeManager.GameMode.Photon;
+        GameModeManager.Instance.InitializeGameMode();
     }
 }

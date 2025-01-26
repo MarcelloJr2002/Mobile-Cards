@@ -26,32 +26,32 @@ public class PanelManager : MonoBehaviour
 
     public void CreateTogglesForValues(List<int> values, int requestedValue)
     {
-        // Ustaw nagłówek
+
         headerText.text = "Choose request card";
 
-        // Usuń istniejące toggles w panelu, jeśli są
+
         foreach (Transform child in toggleContainer)
         {
             if (child.GetComponent<Toggle>() != null)
             {
-                Destroy(child.gameObject); // Usuwa tylko obiekty, które mają komponent Toggle
+                Destroy(child.gameObject); 
             }
         }
 
         togglePanel.SetActive(true);
 
 
-        // Tworzenie toggle dla każdej wartości
+
         foreach (int value in values)
         {
-            GameObject toggleObj = Instantiate(togglePrefab, toggleContainer); // Dodanie do panelu
+            GameObject toggleObj = Instantiate(togglePrefab, toggleContainer); 
             Toggle toggle = toggleObj.GetComponent<Toggle>();
             Text toggleText = toggleObj.GetComponentInChildren<Text>();
 
             if (toggle != null && toggleText != null)
             {
-                toggle.group = toggleGroup; // Przypisz do grupy, aby zachować Radio Button
-                toggleText.text = value.ToString(); // Ustaw tekst toggle
+                toggle.group = toggleGroup; 
+                toggleText.text = value.ToString();
                 toggle.onValueChanged.AddListener((isOn) =>
                 {
                     if (isOn)
@@ -63,7 +63,7 @@ public class PanelManager : MonoBehaviour
                         Debug.Log($"Requested value: {requestedValue}");
                     }
 
-                    else if (!toggleGroup.AnyTogglesOn()) // Jeśli wszystko odznaczone
+                    else if (!toggleGroup.AnyTogglesOn()) 
                     {
                         requestedValue = 0;
                         makao.requestedValue = requestedValue;
@@ -79,7 +79,16 @@ public class PanelManager : MonoBehaviour
             Transform firstToggleTransform = toggleContainer.GetChild(toggleContainer.childCount - 1);
             Toggle firstToggle = firstToggleTransform.GetComponent<Toggle>();
             Text labelText = firstToggleTransform.GetComponentInChildren<Text>();
-            requestedValue = int.Parse(labelText.text);
+
+            if(labelText.text == "" || labelText.text == null)
+            {
+                requestedValue = 0;
+            }
+
+            else
+            {
+                requestedValue = int.Parse(labelText.text);
+            }
             makao.requestedValue = requestedValue;
             makao.photonView.RPC("SetValue", RpcTarget.AllBuffered, requestedValue);
             Debug.Log(requestedValue);
@@ -88,15 +97,15 @@ public class PanelManager : MonoBehaviour
 
     public void CreateTogglesForColors(List<Card.CardColor> colors, string requestedColor)
     {
-        // Ustaw nagłówek
+
         headerText.text = "Choose request color";
 
-        // Usuń istniejące toggles w panelu, jeśli są
+
         foreach (Transform child in toggleContainer)
         {
             if (child.GetComponent<Toggle>() != null)
             {
-                Destroy(child.gameObject); // Usuwa tylko obiekty, które mają komponent Toggle
+                Destroy(child.gameObject); 
             }
         }
 
@@ -104,17 +113,17 @@ public class PanelManager : MonoBehaviour
         togglePanel.SetActive(true);
         //requestedColor = "";
 
-        // Tworzenie toggle dla każdego koloru
+
         foreach (Card.CardColor color in colors)
         {
-            GameObject toggleObj = Instantiate(togglePrefab, toggleContainer); // Dodanie do panelu
+            GameObject toggleObj = Instantiate(togglePrefab, toggleContainer);
             Toggle toggle = toggleObj.GetComponent<Toggle>();
             Text toggleText = toggleObj.GetComponentInChildren<Text>();
 
             if (toggle != null && toggleText != null)
             {
-                toggle.group = toggleGroup; // Przypisz do grupy, aby zachować Radio Button
-                toggleText.text = color.ToString(); // Ustaw tekst toggle
+                toggle.group = toggleGroup; 
+                toggleText.text = color.ToString(); 
                 toggle.onValueChanged.AddListener((isOn) =>
                 {
                     if (isOn)
@@ -126,7 +135,7 @@ public class PanelManager : MonoBehaviour
                         Debug.Log($"Requested color: {requestedColor}");
                     }
 
-                    else if (!toggleGroup.AnyTogglesOn()) // Jeśli wszystko odznaczone
+                    else if (!toggleGroup.AnyTogglesOn()) 
                     {
                         requestedColor = "";
                         makao.requestedColor = requestedColor;
@@ -136,7 +145,7 @@ public class PanelManager : MonoBehaviour
                 });
             }
         }
-        Transform firstToggleTransform = toggleContainer.GetChild(toggleContainer.childCount - 1); // Pierwsze dziecko kontenera
+        Transform firstToggleTransform = toggleContainer.GetChild(toggleContainer.childCount - 1);
         Toggle firstToggle = firstToggleTransform.GetComponent<Toggle>();
         Text labelText = firstToggleTransform.GetComponentInChildren<Text>();
         requestedColor = labelText.text;
@@ -152,7 +161,7 @@ public class PanelManager : MonoBehaviour
         {
             if (child.GetComponent<Toggle>() != null)
             {
-                Destroy(child.gameObject); // Usuwa tylko obiekty, które mają komponent Toggle
+                Destroy(child.gameObject);
             }
         }
 

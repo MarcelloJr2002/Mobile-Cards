@@ -36,7 +36,7 @@ public class PlayerManager : MonoBehaviour
             ShowText(infoText.text);
         }
 
-        if(ContainsPolishCharacters(inputField.text))
+        else if(ContainsPolishCharacters(inputField.text))
         {
             infoText.text = "You can't use polish letters!";
             ShowText(infoText.text);

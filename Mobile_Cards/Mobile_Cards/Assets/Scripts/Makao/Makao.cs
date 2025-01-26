@@ -183,6 +183,17 @@ public class Makao : BaseGameManager
     {
         GameObject newbutton = GameObject.Find(buttonName);
 
+        if (buttonName == "Position1")
+        {
+            cardsCountText[0].transform.position = newbutton.transform.position + new Vector3(0, 200, 0);
+            Debug.Log("Bet and text positions assigned");
+        }
+
+        else
+        {
+            cardsCountText[1].transform.position = newbutton.transform.position + new Vector3(0, 200, 0);
+        }
+
         if (newbutton != null && newbutton.activeSelf)
         {
             newbutton.SetActive(false);
@@ -234,7 +245,7 @@ public class Makao : BaseGameManager
     public override void GameStart()
     {
         base.GameStart();
-        if(playersList.Count >= 1)
+        if(playersList.Count > 1)
         {
             masterButton.SetActive(false);
 
@@ -284,35 +295,41 @@ public class Makao : BaseGameManager
         Debug.Log($"Player {pId} hand size: {playersList[pId].playerCards.Count}");
 
         Player currentPlayer = playersList[pId];
-        if (playersList[pId].playerCards.Count > 6)
+        if (playersList[pId].playerCards.Count > 5)
         {
-            // Ustaw scrollOffset tak, aby ostatnie karty były widoczne
-            scrollOffset = playersList[pId].playerCards.Count - 6;
+ 
+            scrollOffset = playersList[pId].playerCards.Count - 5;
         }
         else
         {
-            // Jeśli karty mieszczą się w widocznym obszarze, resetujemy scrollOffset
             scrollOffset = 0;
         }
 
         Transform parentTransform = (playersList[playerId].position == positionButtons[0].transform.position) ? cardsContainer1 : cardsContainer2;
 
-        int newScrollOffset = Mathf.Max(0, playersList[pId].cardsObjects.Count - 6);
+        int newScrollOffset = Mathf.Max(0, playersList[pId].cardsObjects.Count - 5);
 
-        cardDealer.RearrangeCards(currentPlayer, parentTransform, 6, newScrollOffset);
+        int counter = playersList[pId].playerCards.Count;
+
+        if(counter > 6)
+        {
+            counter = 6;
+        }
+
+        cardDealer.RearrangeCards(currentPlayer, parentTransform, 5, newScrollOffset);
 
         UpdateCardsCount(pId, playersList[pId].position.x);
 
         if (playersList[Globals.localPlayerId].position == positionButtons[0].transform.position && pId == Globals.localPlayerId)
         {
-            LeftArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
-            RightArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            LeftArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 5);
+            RightArrowBtn2.gameObject.SetActive(playersList[playerId].playerCards.Count > 5);
         }
 
         if(playersList[Globals.localPlayerId].position == positionButtons[1].transform.position && pId == Globals.localPlayerId)
         {
-            LeftArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
-            RightArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 6);
+            LeftArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 5);
+            RightArrowBtn.gameObject.SetActive(playersList[playerId].playerCards.Count > 5);
         }
 
         //Debug.Log($"Player {pId} hand size: {playersList[pId].playerCards.Count}");
@@ -361,7 +378,7 @@ public class Makao : BaseGameManager
     [PunRPC]
     public void MoveCardFromHand(int cardId, int newScrollOffset)
     {
-        // Pobierz kartę i zaktualizuj stan
+
         Card card = rpcDeck.GetCardById(cardId);
         if (card == null)
         {
@@ -369,13 +386,13 @@ public class Makao : BaseGameManager
             return;
         }
 
-        // Dodaj kartę na stół i zaktualizuj stan aktualnej karty na stole
+
         tableCards.Add(card);
         currentCardOnTable = card;
         requestedCard = card;
         currentSuit = card.cardColor.ToString();
 
-        // Usuń kartę z ręki gracza
+
         playersList[playerId].playerCards.Remove(card);
         UpdateCardsCount(playerId, playersList[playerId].position.x);
 
@@ -386,7 +403,7 @@ public class Makao : BaseGameManager
 
         Debug.Log($"Card moved to table: {card.cardType} {card.cardColor} (ID: {cardId}).");
 
-        // Animacja przesunięcia karty na stół
+
         foreach (var cardObject in selectedCardsObjects)
         {
             if (!cardObject.activeSelf)
@@ -400,17 +417,17 @@ public class Makao : BaseGameManager
             playersList[playerId].cardsObjects.Remove(cardObject);
         }
 
-        // Zaktualizuj scrollOffset dla gracza
+
         scrollOffset = newScrollOffset;
 
-        // Przeorganizuj karty gracza z aktualnym offsetem
+
         if (playersList[playerId].position == positionButtons[0].transform.position)
         {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer1, 6, scrollOffset);
+            cardDealer.RearrangeCards(playersList[playerId], cardsContainer1, 5, scrollOffset);
         }
         else
         {
-            cardDealer.RearrangeCards(playersList[playerId], cardsContainer2, 6, scrollOffset);
+            cardDealer.RearrangeCards(playersList[playerId], cardsContainer2, 5, scrollOffset);
         }
     }
 
@@ -422,16 +439,16 @@ public class Makao : BaseGameManager
         if (scrollOffset > 0)
         {
             scrollOffset--;
-            cardDealer.RearrangeCards(player, parentTransform, 6, scrollOffset);
+            cardDealer.RearrangeCards(player, parentTransform, 5, scrollOffset);
         }
     }
 
     public void OnRightArrowClick(Player player, Transform parentTransform)
     {
-        if (scrollOffset + 6 < player.cardsObjects.Count)
+        if (scrollOffset + 5 < player.cardsObjects.Count)
         {
             scrollOffset++;
-            cardDealer.RearrangeCards(player, parentTransform, 6, scrollOffset);
+            cardDealer.RearrangeCards(player, parentTransform, 5, scrollOffset);
         }
     }
 
@@ -573,10 +590,10 @@ public class Makao : BaseGameManager
             highlight.transform.position = cardObject.transform.position + new Vector3(0, 200, 0);
             highlight.SetActive(true);
 
-            // Zapisanie podświetlenia w słowniku
+
             cardHighlights[cardObject] = highlight;
 
-            // Dodanie karty do listy zaznaczonych
+
             selectedCards.Add(card);
             selectedCardsObjects.Add(cardObject);
             Debug.Log("Card selected: " + card.value + card.cardColor);
@@ -639,17 +656,17 @@ public class Makao : BaseGameManager
 
             Player currentPlayer = playersList[Globals.localPlayerId];
 
-            // Usuwanie kart z ręki gracza oraz z dropdowna
+
             foreach (Card card in selectedCards)
             {
                 currentPlayer.playerCards.Remove(card);
 
                 if (extraCards.Contains(card))
                 {
-                    // Usuń kartę z listy dodatkowych kart
+
                     extraCards.Remove(card);
 
-                    // Usuń odpowiadającą opcję z dropdowna
+
                     int dropdownIndex = extraCardsDropdown.options.FindIndex(option =>
                         option.text == $"{card.cardType} {card.cardColor}" ||
                         option.text == $"{card.value} {card.cardColor}");
@@ -661,7 +678,7 @@ public class Makao : BaseGameManager
                 }
             }
 
-            // Oczyszczenie zaznaczeń
+
             selectedCards.Clear();
             foreach (var highlight in cardHighlights.Values)
             {
@@ -669,7 +686,7 @@ public class Makao : BaseGameManager
             }
             cardHighlights.Clear();
 
-            // Odświeżenie dropdowna
+
             extraCardsDropdown.RefreshShownValue();
             ConfirmButton.SetActive(false);
             drawCardButton.SetActive(false);
@@ -677,7 +694,7 @@ public class Makao : BaseGameManager
             if (currentPlayer.playerCards.Count == 0)
             {
                 photonView.RPC("ShowAndHideResultSign", RpcTarget.AllBuffered, currentPlayer.position);
-                EndGame();
+                photonView.RPC("EndGameRPC", RpcTarget.AllBuffered);
             }
             else
             {
@@ -856,7 +873,7 @@ public class Makao : BaseGameManager
 
         else
         {
-            // Rozszerzenie reguł dla kart specjalnych
+
             if (currentCardOnTable != null)
             {
                 
@@ -868,7 +885,7 @@ public class Makao : BaseGameManager
                 
                 switch (currentCardOnTable.value)
                 {
-                    case 2: // Dwójka
+                    case 2: 
                         Debug.Log("Dwa");
                         return card.value == 2 ||
                                card.value == 3 && card.cardColor == currentCardOnTable.cardColor ||
@@ -878,7 +895,7 @@ public class Makao : BaseGameManager
                                (card.cardType == Card.CardType.Queen &&
                                 (card.cardColor == Card.CardColor.Heart || card.cardColor == Card.CardColor.Spade));
 
-                    case 3: // Trójka
+                    case 3: 
                         Debug.Log("Trzy");
                         return card.value == 3 ||
                                card.value == 2 && card.cardColor == currentCardOnTable.cardColor ||
@@ -888,11 +905,11 @@ public class Makao : BaseGameManager
                                (card.cardType == Card.CardType.Queen &&
                                 (card.cardColor == Card.CardColor.Heart || card.cardColor == Card.CardColor.Spade));
 
-                    case 4: // Czwórka (blokada)
+                    case 4: 
                         Debug.Log("Cztery");
                         return card.value == 4;
 
-                    case 5: // Piątka na wszystko
+                    case 5: 
                         Debug.Log("Piec");
                         return true;
 
@@ -938,10 +955,6 @@ public class Makao : BaseGameManager
             }
         }
         
-        // Sprawdzenie podstawowych reguł
-        
-
-        // Jeśli żadna z powyższych reguł nie została spełniona
         return false;
     }
 
@@ -968,6 +981,8 @@ public class Makao : BaseGameManager
                     Card drawnCard = deck.DrawCard();
                     photonView.RPC("DealCardToPlayer", RpcTarget.AllBuffered, playerId, drawnCard.id);
                 }
+
+                ShowInfo("You can't respond!");
                 photonView.RPC("SetCardsToDraw", RpcTarget.AllBuffered, 0);
                 photonView.RPC("SetFirstCard", RpcTarget.AllBuffered);
                 currentPlayerIndex = (currentPlayerIndex + 1) % playersList.Count;
@@ -976,6 +991,7 @@ public class Makao : BaseGameManager
 
             if(request == Request.Stand)
             {
+                ShowInfo("You can't respond!");
                 currentPlayerIndex = (currentPlayerIndex + 1) % playersList.Count;
                 photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, currentPlayerIndex);
                 photonView.RPC("SetFirstCard", RpcTarget.AllBuffered);
@@ -983,12 +999,13 @@ public class Makao : BaseGameManager
 
             if(request == Request.Demand || request == Request.ChangeColor)
             {
+                ShowInfo("You can't respond!");
                 photonView.RPC("UpdateTurn", RpcTarget.AllBuffered, currentPlayerIndex);
             }
-
+            
             else
             {
-                ShowInfo("You can play!");
+                //ShowInfo("You can play!");
                 photonView.RPC("SetCanHandleRequest", RpcTarget.AllBuffered, true);
             }
         }

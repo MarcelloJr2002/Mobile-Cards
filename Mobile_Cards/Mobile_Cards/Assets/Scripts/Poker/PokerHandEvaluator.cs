@@ -22,7 +22,7 @@ public class PokerHandEvaluator : MonoBehaviour
     public class HandResult
     {
         public HandRank Rank;
-        public List<int> TiebreakerValues; // Używane do porównania przy remisach
+        public List<int> TiebreakerValues;
         public string Description;
 
         public HandResult(HandRank rank, List<int> tiebreakerValues, string description)
@@ -33,7 +33,7 @@ public class PokerHandEvaluator : MonoBehaviour
         }
     }
 
-    // Metoda główna do oceny rąk pokerowych
+
     public static HandResult EvaluateHand(List<Card> cards)
     {
         if (cards == null || cards.Count != 5)
@@ -47,7 +47,7 @@ public class PokerHandEvaluator : MonoBehaviour
 
         if (isFlush && isStraight)
         {
-            if (cards[0].value == 14) // Ace-high
+            if (cards[0].value == 14) 
                 return new HandResult(HandRank.RoyalFlush, new List<int>(), "Royal Flush");
             return new HandResult(HandRank.StraightFlush, new List<int> { cards[0].value }, "Straight Flush");
         }
@@ -80,7 +80,7 @@ public class PokerHandEvaluator : MonoBehaviour
         {
             if (cards[i].value - cards[i + 1].value != 1)
             {
-                if (i == 0 && cards[i].value == 14 && cards[1].value == 5) // Ace-low straight
+                if (i == 0 && cards[i].value == 14 && cards[1].value == 5) 
                     continue;
                 return false;
             }
@@ -110,7 +110,7 @@ public class PokerHandEvaluator : MonoBehaviour
         return bestHand;
     }
 
-    // Porównanie wyników dwóch graczy
+
     public static int CompareHands(HandResult hand1, HandResult hand2)
     {
         if (hand1.Rank > hand2.Rank)
@@ -118,7 +118,7 @@ public class PokerHandEvaluator : MonoBehaviour
         if (hand1.Rank < hand2.Rank)
             return -1;
 
-        // W przypadku remisu porównaj wartości
+
         for (int i = 0; i < hand1.TiebreakerValues.Count; i++)
         {
             if (hand1.TiebreakerValues[i] > hand2.TiebreakerValues[i])
@@ -126,6 +126,6 @@ public class PokerHandEvaluator : MonoBehaviour
             if (hand1.TiebreakerValues[i] < hand2.TiebreakerValues[i])
                 return -1;
         }
-        return 0; // Remis
+        return 0; 
     }
 }

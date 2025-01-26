@@ -29,7 +29,6 @@ public class CardDealer : MonoBehaviour
     public Button positionBtn2;
     private Makao makao;
 
-    private GameObject hiddenCardGameObject;
 
     void Awake()
     {
@@ -136,10 +135,10 @@ public class CardDealer : MonoBehaviour
         hiddenCard.transform.DOScaleX(0, 0.3f).SetEase(Ease.InOutCubic).OnComplete(() =>
         {
 
-            // Zmień grafikę na odkrytą kartę
+
             cardImage.sprite = cardsModels.getSpriteId(id);
 
-            // Przywróć skalę X z animacją
+
             hiddenCard.transform.DOScaleX(1, 0.3f).SetEase(Ease.InOutCubic).OnComplete(() =>
             {
                 Debug.Log("Second card revealed!");
@@ -237,7 +236,7 @@ public class CardDealer : MonoBehaviour
         clickHandler.Initialize(makaoGame);
     }
 
-    public void RearrangeCards(Player player, Transform parentTransform, int maxVisibleCards, int scrollOffset, float cardSpacing = 40f)
+    public void RearrangeCards(Player player, Transform parentTransform, int maxVisibleCards, int scrollOffset, float cardSpacing = 35f)
     {
         if (player == null || player.cardsObjects == null || player.cardsObjects.Count == 0)
         {
@@ -245,23 +244,23 @@ public class CardDealer : MonoBehaviour
             return;
         }
 
-        // Ukrywanie wszystkich kart poza zakresem widocznych
+
         for (int i = 0; i < player.cardsObjects.Count; i++)
         {
             GameObject cardObject = player.cardsObjects[i];
             cardObject.SetActive(i >= scrollOffset && i < scrollOffset + maxVisibleCards);
         }
 
-        // Obliczanie szerokości układu kart widocznych
+
         int visibleCardCount = Mathf.Min(maxVisibleCards, player.cardsObjects.Count - scrollOffset);
         float totalWidth = (visibleCardCount - 1) * cardSpacing;
-        float startX = -totalWidth / 2f;
+        float startX = -totalWidth / 1.6f;
 
-        // Iteracja przez karty gracza w widocznym zakresie
+
         for (int i = 0; i < visibleCardCount; i++)
         {
             int actualIndex = i + scrollOffset;
-            //Debug.Log("Actual index: " + actualIndex);
+
             if (actualIndex >= player.cardsObjects.Count)
             {
                 actualIndex -= 1;
@@ -273,23 +272,27 @@ public class CardDealer : MonoBehaviour
             }
             GameObject cardObject = player.cardsObjects[actualIndex];
 
-            // Ustawienie rodzica, jeśli nie jest ustawiony
+
             if (cardObject.transform.parent != parentTransform)
             {
                 cardObject.transform.SetParent(parentTransform, false);
             }
 
-            // Obliczenie nowej pozycji
+
             Vector3 targetPosition = new Vector3(startX + i * cardSpacing, 0, 0);
 
-            // Przesunięcie karty do odpowiedniej pozycji
+            if(player.playerCards.Count == 3)
+            {
+                targetPosition += new Vector3(100, 0, 0);
+                Debug.Log("Card if 2 position: " + targetPosition);
+            }
+
             cardObject.transform.DOLocalMove(targetPosition, 0.5f).SetEase(Ease.OutCubic);
 
-            // Zresetowanie skali karty (na wypadek, gdyby była zmieniona)
             cardObject.transform.localScale = Vector3.one;
-        }
 
-        //Debug.Log($"Rearranged {visibleCardCount} visible cards for player {player.name}.");
+            Debug.Log("Card " + i + " position: " + targetPosition.x);
+        }
     }
 
 

@@ -83,6 +83,6 @@ public class GoBackButton : MonoBehaviourPunCallbacks
     public override void OnDisconnected(DisconnectCause cause)
     {
         base.OnDisconnected(cause);
-        SceneManager.LoadScene("ConnectionChoice");
+        SceneManager.LoadScene("GameChoice");
     }
 }

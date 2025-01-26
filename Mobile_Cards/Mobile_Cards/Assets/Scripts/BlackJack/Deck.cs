@@ -19,12 +19,12 @@ public class Deck : MonoBehaviour
     {
         int id = 0;
 
-        // Pobieramy aktualny typ gry
+
         string gameType = GameModeManager.Instance.selectedGameType.ToSafeString();
 
         Debug.Log("Game type: " + gameType);
 
-        // Przechodzimy przez wszystkie kolory kart
+
         foreach (Card.CardColor color in System.Enum.GetValues(typeof(Card.CardColor)))
         {
             for (int j = 0; j < 13; j++)
@@ -32,7 +32,7 @@ public class Deck : MonoBehaviour
                 int cardValue;
                 Card.CardType cardType;
 
-                // Przypisujemy wartości i typy kart na podstawie gameType
+
                 if (j == 0)
                 {
                     cardValue = gameType == "BlackJack" ? 11 : 14;
@@ -55,11 +55,11 @@ public class Deck : MonoBehaviour
                 }
                 else
                 {
-                    cardValue = j + 1; // Wartość numeryczna
+                    cardValue = j + 1;
                     cardType = Card.CardType.Numerical;
                 }
 
-                // Tworzymy i dodajemy kartę do talii
+
                 Cards.Add(new Card(id, cardValue, cardType, color));
                 id++;
             }
@@ -74,7 +74,7 @@ public class Deck : MonoBehaviour
             CreateDeck();
         }
 
-        int id = Random.Range(0, Cards.Count); // Poprawny zakres
+        int id = Random.Range(0, Cards.Count); 
         Card drawnCard = Cards[id];
 
         //Cards.RemoveAt(id);

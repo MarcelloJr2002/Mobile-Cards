@@ -58,6 +58,7 @@ public class Poker : BaseGameManager
 
 
 
+
     private void Start()
     {
         photonView = GetComponent<PhotonView>();
@@ -89,16 +90,17 @@ public class Poker : BaseGameManager
         playersList[playerName].position = position;
         playersList[playerName].pokerPosition = pPosition[playersList.Count - 1];
         playersList[playerName].name = playerName;
+        playersList[playerName].bet = 0;
 
         if (playersList[playerName].pokerPosition == "SM")
         {
-            positionSign[0].transform.position = position + new Vector3(100, 0, 0);
+            //positionSign[0].transform.position = position + new Vector3(100, 0, 0);
             positionSign[0].SetActive(true);
         }
 
         if (playersList[playerName].pokerPosition == "BB")
         {
-            positionSign[1].transform.position = position + new Vector3(100, 0, 0);
+            //positionSign[1].transform.position = position + new Vector3(100, 0, 0);
             positionSign[1].SetActive(true);
         }
         Debug.Log("Player position: " + playersList[playerName].pokerPosition);
@@ -113,6 +115,7 @@ public class Poker : BaseGameManager
 
             targetPosition = button.transform.position;
             Debug.Log(targetPosition);
+
 
             photonView.RPC("AddPlayer", RpcTarget.AllBuffered, PhotonNetwork.LocalPlayer.NickName, button.transform.position);
 
@@ -139,6 +142,19 @@ public class Poker : BaseGameManager
     {
         GameObject newbutton = GameObject.Find(buttonName);
 
+        if(buttonName == "Position1")
+        {
+            betText[0].transform.position = newbutton.transform.position + new Vector3(0, 200, 0);
+            MoneyText[0].transform.position = newbutton.transform.position + new Vector3(0, -200, 0);
+            Debug.Log("Bet and text positions assigned");
+        }
+
+        else
+        {
+            betText[1].transform.position = newbutton.transform.position + new Vector3(0, 200, 0);
+            MoneyText[1].transform.position = newbutton.transform.position + new Vector3(0, -200, 0);
+        }
+
         if (newbutton != null && newbutton.activeSelf)
         {
             newbutton.SetActive(false);
@@ -152,16 +168,16 @@ public class Poker : BaseGameManager
 
     public void ShowText(string text)
     {
-        // Ustaw początkową przezroczystość na 0 (tekst niewidoczny)
+
         infoText.color = new Color(infoText.color.r, infoText.color.g, infoText.color.b, 0);
         infoText.text = text;
         
-        // Animacja pojawienia się
-        infoText.DOFade(1, 0.5f) // Fade-in w 0.5 sekundy
+
+        infoText.DOFade(1, 0.5f) 
             .OnComplete(() =>
             {
-                // Po 2 sekundach zniknij
-                infoText.DOFade(0, 0.5f).SetDelay(2f); // Fade-out w 0.5 sekundy po opóźnieniu 2 sekund
+
+                infoText.DOFade(0, 0.5f).SetDelay(2f); 
             });
     }
 
@@ -189,15 +205,11 @@ public class Poker : BaseGameManager
     {
         for (int i = 0; i < MoneyText.Length; i++)
         {
+            Debug.Log(MoneyText[i].text);
             if (MoneyText[i].transform.position.x == x)
             {
                 MoneyText[i].text = amount.ToString() + "$";
                 Debug.Log(MoneyText[i].text);
-                if(!PhotonOrBluetooth())
-                {
-                    message = $"UPDATEMONEY,{MoneyText[i].text},{i}";
-                    BluetoothForAndroid.WriteMessage(message);
-                }
                 break;
             }
         }
@@ -207,15 +219,11 @@ public class Poker : BaseGameManager
     {
         for (int i = 0; i < betText.Length; i++)
         {
+            Debug.Log(MoneyText[i].text);
             if (betText[i].transform.position.x == x)
             {
                 betText[i].text = betValue.ToString() + "$";
                 Debug.Log(betText[i].text);
-                if(!PhotonOrBluetooth())
-                {
-                    message = $"SHOWBET,{betText[i].text},{i}";
-                    BluetoothForAndroid.WriteMessage(message);
-                }
                 break;
             }
         }
@@ -317,29 +325,29 @@ public class Poker : BaseGameManager
     {
         //buttons.SetActive(true);
 
-        // Ukrywanie przycisków w zależności od stanu gry
+
         if (gameMoment == "PreFlop")
         {
             if (playersList[playerId].pokerPosition == "BB")
             {
-                // Big Blind może checkować, jeśli nie było raisa
-                actionButtons[2].SetActive(!raiseCondition); // Pokaż "Check", jeśli nie było Raise
-                actionButtons[1].SetActive(raiseCondition); //call
+
+                actionButtons[2].SetActive(!raiseCondition); 
+                actionButtons[1].SetActive(raiseCondition); 
             }
             else
             {
-                actionButtons[2].SetActive(false); // Inni gracze nie mogą Check bez opłacenia BB
-                actionButtons[1].SetActive(true); //call
+                actionButtons[2].SetActive(false); 
+                actionButtons[1].SetActive(true);
             }
         }
         else
         {
-            actionButtons[1].SetActive(raiseCondition); //call
-            actionButtons[2].SetActive(!raiseCondition); //check
+            actionButtons[1].SetActive(raiseCondition);
+            actionButtons[2].SetActive(!raiseCondition); 
         }
 
-        actionButtons[0].SetActive(true); //fold
-        actionButtons[3].SetActive(true); //raise
+        actionButtons[0].SetActive(true); 
+        actionButtons[3].SetActive(true); 
 
         betInputField.gameObject.SetActive(true);
     }
@@ -457,6 +465,7 @@ public class Poker : BaseGameManager
         playersList[playerId].DeductMoney(bet);
         pot += bet;
         potText.text = pot.ToString();
+        UpdateMoney(playersList[playerId].money, playersList[playerId].position.x);
     }
 
     public void Call()
@@ -507,13 +516,17 @@ public class Poker : BaseGameManager
     {
         if (int.TryParse(betAmount, out int raiseValue))
         {
-            bet = Mathf.Max(bet, raiseValue); // Ustaw nowy bet, jeśli jest większy niż obecny
+            bet = Mathf.Max(bet, raiseValue); 
             pot += bet;
             potText.text = pot.ToString();
             playersList[playerId].DeductMoney(bet);
-            raiseCondition = true; // Raise został wykonany
+            playersList[playerId].bet = bet;
+            raiseCondition = true; 
             //playersList[playerId].ifRaised = true;
             raiser = playersList[playerId];
+
+            UpdateMoney(playersList[playerId].money, playersList[playerId].position.x);
+            ShowBet(playersList[playerId].bet, playersList[playerId].position.x);
         }
         else
         {
@@ -569,7 +582,10 @@ public class Poker : BaseGameManager
             if(player.ifFolded == false)
             {
                 winner = player;
+                winner.money += pot;
+                UpdateMoney(winner.money, winner.position.x);
             }
+            ShowBet(0, player.position.x);
         }
 
         EndGame();
@@ -587,7 +603,7 @@ public class Poker : BaseGameManager
     [PunRPC]
     public void CheckRPC()
     {
-        ifChecked = true; // Gracz wykonał Check
+        ifChecked = true; 
     }
 
     public void Check()
@@ -778,6 +794,14 @@ public class Poker : BaseGameManager
                 winner = playersList[playerId];
             }
         }
+
+        winner.money += pot;
+        UpdateMoney(winner.money, winner.position.x);
+
+        foreach(var player in playersList.Values)
+        {
+            ShowBet(0, player.position.x);
+        }
         if(compareResult != 0)
         {
             AssignResultSign(winningHand.Description);
@@ -786,7 +810,8 @@ public class Poker : BaseGameManager
 
         else
         {
-            ShowText("Draw");
+            signIndex = 10;
+            StartCoroutine(ShowAndHideSign(signIndex, new Vector3(0, 0, 0)));
         }
 
         EndGame();
@@ -860,6 +885,18 @@ public class Poker : BaseGameManager
         ifChecked = false;
         raiseCondition = false;
         currentPlayerIndex = 0;
+        pot = 0;
+
+        GameObject blindsPosition = positionSign[0];
+
+        positionSign[0].SetActive(false);
+        positionSign[1].SetActive(false);
+
+        positionSign[0].transform.position = positionSign[1].transform.position;
+        positionSign[1].transform.position = blindsPosition.transform.position;
+
+        positionSign[0].SetActive(true);
+        positionSign[1].SetActive(true);
 
         for (int i = 0; i < playersList.Count; i++)
         {
